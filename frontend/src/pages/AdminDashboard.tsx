@@ -72,14 +72,22 @@ export function AdminDashboard() {
     };
 
     // Parse data field if it looks like JSON
+    // Parse data field if it looks like JSON
     const parseData = (dataHex: string) => {
+        if (!dataHex || dataHex === '0x') return 'No Data';
         try {
-            // data comes as hex string from smart contract usually, but our API might return it as string if decoded
-            // or we simply might display it.
-            // If the backend returns the raw bytes/hex, we might need to decode.
-            // For now, let's assume the backend or contract returns utf8 string if possible, or we just display raw.
-            return dataHex;
+            // Remove 0x prefix
+            const hex = dataHex.startsWith('0x') ? dataHex.slice(2) : dataHex;
+            // Convert hex to string
+            let str = '';
+            for (let i = 0; i < hex.length; i += 2) {
+                str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+            }
+            // Remove null bytes if any
+            str = str.replace(/\0/g, '');
+            return str;
         } catch (e) {
+            console.error("Failed to parse data:", e);
             return dataHex;
         }
     };
