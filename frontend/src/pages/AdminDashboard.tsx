@@ -1,14 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getTransactions, api, type Transaction, getGradingDetails, uploadImage } from '../api';
-import { Check, Loader2, Search, Upload } from 'lucide-react';
+import { Check, Loader2, Search, Upload, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
+import { SubmitCardModal } from '../components/SubmitCardModal';
 
 export function AdminDashboard() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [gradings, setGradings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
     const [gradingDetails, setGradingDetails] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Grading Form State
     const [cardName, setCardName] = useState('');
@@ -62,9 +65,24 @@ export function AdminDashboard() {
         }
     };
 
+    const fetchGradings = async () => {
+        try {
+            const res = await api.get('/gradings');
+            if (res.data.success) {
+                setGradings(res.data.gradings);
+            }
+        } catch (error) {
+            console.error("Failed to fetch gradings", error);
+        }
+    };
+
     useEffect(() => {
         fetchTransactions();
-        const interval = setInterval(fetchTransactions, 5000); // Poll every 5s
+        fetchGradings();
+        const interval = setInterval(() => {
+            fetchTransactions();
+            fetchGradings();
+        }, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -150,6 +168,20 @@ export function AdminDashboard() {
         }
     };
 
+    const getGradingStatusColor = (status: string) => {
+        const statusColors: Record<string, string> = {
+            'Submitted': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            'Authentication in Progress': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            'Condition Inspection': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+            'Grading Assigned': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+            'Encapsulation/Slabbing': 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+            'Quality Control': 'bg-pink-500/20 text-pink-400 border-pink-500/30',
+            'Complete': 'bg-green-500/20 text-green-400 border-green-500/30',
+            'Delivered': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+        };
+        return statusColors[status] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    };
+
     // Parse data field if it looks like JSON
     const parseData = (dataHex: string) => {
         if (!dataHex || dataHex === '0x') return 'No Data';
@@ -180,12 +212,79 @@ export function AdminDashboard() {
                     <p className="text-gray-400">Manage and Grade Client Requests</p>
                 </div>
                 <button
-                    onClick={fetchTransactions}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                    onClick={() => setIsModalOpen(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-bold shadow-lg flex items-center gap-2 transition-all"
                 >
-                    Refresh
+                    <Plus size={20} />
+                    Submit Card
                 </button>
             </header>
+
+            {/* Grading Cards Section */}
+            <div className="mb-8">
+                <h2 className="text-2xl font-semibold mb-4 text-gray-300">Grading Submissions</h2>
+                {loading ? (
+                    <div className="flex justify-center p-12">
+                        <Loader2 className="animate-spin text-blue-400" size={48} />
+                    </div>
+                ) : gradings.length === 0 ? (
+                    <div className="text-center p-12 text-gray-500 bg-gray-800/50 rounded-xl border border-dashed border-gray-700">
+                        No grading submissions yet.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {gradings.map((grading) => (
+                            <motion.div
+                                key={grading.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-gray-800 rounded-xl border border-gray-700 overflow-visible hover:border-blue-500/50 transition-all shadow-lg relative pt-6"
+                            >
+                                {/* Circular ID Badge at top center */}
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 border-4 border-gray-900 flex items-center justify-center shadow-lg">
+                                        <span className="text-white font-bold text-sm">{grading.uid || grading.id}</span>
+                                    </div>
+                                </div>
+
+                                <div className="aspect-[3/4] bg-gray-900 relative overflow-hidden rounded-t-xl">
+                                    <img
+                                        src={grading.image_url}
+                                        alt={grading.card_name}
+                                        className="w-full h-full object-contain"
+                                    />
+                                    {grading.grade && (
+                                        <div className="absolute top-2 right-2 bg-blue-600 text-white font-bold text-lg px-3 py-1 rounded-lg shadow-lg">
+                                            {grading.grade}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="p-4 space-y-3">
+                                    <div>
+                                        <h3 className="font-bold text-lg text-white mb-1">{grading.card_name}</h3>
+                                        <div className="flex gap-2 text-sm text-gray-400">
+                                            {grading.card_set && <span>{grading.card_set}</span>}
+                                            {grading.card_year && <span>• {grading.card_year}</span>}
+                                        </div>
+                                    </div>
+
+                                    {grading.condition && (
+                                        <div className="text-sm">
+                                            <span className="text-gray-500 font-medium">Condition:</span>
+                                            <span className="text-gray-200 ml-2 font-semibold">{grading.condition}</span>
+                                        </div>
+                                    )}
+
+                                    <div className={`px-3 py-2 rounded-lg border text-sm font-bold text-center uppercase tracking-wide ${getGradingStatusColor(grading.status)}`}>
+                                        {grading.status}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -375,6 +474,15 @@ export function AdminDashboard() {
                 </div>
 
             </div>
+
+            <SubmitCardModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={() => {
+                    fetchGradings();
+                    setIsModalOpen(false);
+                }}
+            />
         </div>
     );
 }

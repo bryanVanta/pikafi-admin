@@ -6,8 +6,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<GradingList />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/" element={<AdminDashboard />} />
+        <Route path="/submissions" element={<GradingList />} />
       </Routes>
     </Router>
   );
