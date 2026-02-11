@@ -276,9 +276,55 @@ export function AdminDashboard() {
                                         </div>
                                     )}
 
+                                    {/* Status Update Dropdown */}
+                                    <div>
+                                        <label className="text-xs text-gray-500 block mb-1">Update Status:</label>
+                                        <select
+                                            value={grading.status}
+                                            onChange={async (e) => {
+                                                const newStatus = e.target.value;
+                                                try {
+                                                    const res = await api.patch(`/gradings/${grading.id}/status`, { status: newStatus });
+                                                    if (res.data.success) {
+                                                        fetchGradings(); // Refresh the list
+                                                        alert(`Status updated! Blockchain TX: ${res.data.blockchain?.txHash || 'N/A'}`);
+                                                    }
+                                                } catch (error) {
+                                                    console.error('Status update failed:', error);
+                                                    alert('Failed to update status');
+                                                }
+                                            }}
+                                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                                        >
+                                            <option value="Submitted">Submitted</option>
+                                            <option value="Authentication in Progress">Authentication in Progress</option>
+                                            <option value="Condition Inspection">Condition Inspection</option>
+                                            <option value="Grading Assigned">Grading Assigned</option>
+                                            <option value="Encapsulation/Slabbing">Encapsulation/Slabbing</option>
+                                            <option value="Ready for Return">Ready for Return</option>
+                                            <option value="Complete">Complete</option>
+                                            <option value="Delivered">Delivered</option>
+                                        </select>
+                                    </div>
+
                                     <div className={`px-3 py-2 rounded-lg border text-sm font-bold text-center uppercase tracking-wide ${getGradingStatusColor(grading.status)}`}>
                                         {grading.status}
                                     </div>
+
+                                    {/* Blockchain Transaction Link */}
+                                    {grading.tx_hash && (
+                                        <a
+                                            href={`https://sepolia.arbiscan.io/tx/${grading.tx_hash}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-xs text-blue-400 font-medium transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                            View on Arbiscan
+                                        </a>
+                                    )}
                                 </div>
                             </motion.div>
                         ))}

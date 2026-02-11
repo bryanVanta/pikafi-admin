@@ -48,42 +48,98 @@ const swaggerOptions = {
     apis: ['./src/index.ts'],
 };
 
-const swaggerDocs = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Contract Configuration
-const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
 
-// ABI (Updated for Approval Workflow)
-const ABI = [
-    "function submitProposal(address recipient, bytes calldata data) external payable",
-    "function approveTransaction(uint256 transactionId, address newRecipient, bytes calldata newData) external payable",
-    "function getTransactionCount() external view returns (uint256)",
-    "function getTransaction(uint256 transactionId) external view returns (tuple(address sender, address recipient, uint256 amount, bytes data, uint256 timestamp, uint8 status))",
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Blockchain Configuration
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+
+// Contract ABI (minimal for submitProposal and approveTransaction)
+const contractABI = [
+    "function submitProposal(address recipient, bytes data) external payable",
+    "function approveTransaction(uint256 transactionId, address newRecipient, bytes newData) external payable",
     "event TransactionSubmitted(uint256 indexed transactionId, address indexed sender, address indexed recipient, uint256 amount, uint256 timestamp)",
     "event TransactionApproved(uint256 indexed transactionId, address indexed evaluator, address oldRecipient, uint256 oldAmount, address newRecipient, uint256 newAmount)"
 ];
 
-// Ethers Provider & Wallet
-let wallet: ethers.Wallet;
-let contract: ethers.Contract;
 
+const contract = new ethers.Contract(ethers.getAddress(process.env.CONTRACT_ADDRESS!), contractABI, wallet);
+console.log("✅ Blockchain connection initialized");
+console.log(`📝 Contract: ${process.env.CONTRACT_ADDRESS}`);
+console.log(`🌐 Network: Arbitrum Sepolia (421614)`);
+console.log("🔍 Contract methods:", Object.keys(contract));
 try {
-    if (PRIVATE_KEY && CONTRACT_ADDRESS) {
-        const provider = new ethers.JsonRpcProvider(RPC_URL);
-        wallet = new ethers.Wallet(PRIVATE_KEY, provider);
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, wallet);
-        console.log("Blockchain connection initialized.");
-    } else {
-        console.warn("Missing CONTRACT_ADDRESS or PRIVATE_KEY in .env. Blockchain features disabled.");
+    console.log("🔍 submitProposal type:", typeof contract.submitProposal);
+} catch (e) {
+    console.log("❌ Error accessing submitProposal:", e);
+}
+
+// Helper function to record status change on blockchain
+async function recordStatusOnBlockchain(gradingId: number, cardDetails: any, status: string, previousStatus: string | null = null): Promise<{ txHash: string; blockchainUid: number }> {
+    try {
+        // Encode card data as JSON
+        // Filter card details to only show what is relevant
+        const cleanCardDetails: any = {
+            card_name: cardDetails.card_name,
+            card_set: cardDetails.card_set,
+            card_year: cardDetails.card_year,
+            condition: cardDetails.condition
+        };
+
+        // Only include grades if they are present (cleaner view)
+        if (cardDetails.grade) {
+            cleanCardDetails.grade = cardDetails.grade;
+            cleanCardDetails.grade_corners = cardDetails.grade_corners;
+            cleanCardDetails.grade_edges = cardDetails.grade_edges;
+            cleanCardDetails.grade_surface = cardDetails.grade_surface;
+            cleanCardDetails.grade_centering = cardDetails.grade_centering;
+        }
+
+        const cardData = JSON.stringify({
+            type: 'grading_status',
+            grading_id: gradingId,
+            card_details: cleanCardDetails,
+            action: previousStatus ? `Status changed from ${previousStatus} to ${status}` : 'Initial Submission',
+            timestamp: Date.now()
+        }, null, 2); // Pretty print JSON
+
+        // Convert to bytes
+        const dataBytes = ethers.toUtf8Bytes(cardData);
+
+        // Get checksummed address to avoid ENS lookup
+        const recipientAddress = ethers.getAddress(process.env.CONTRACT_ADDRESS!);
+
+        // Submit to blockchain (recipient is the contract itself for audit purposes)
+        const tx = await contract.submitProposal(
+            recipientAddress,
+            dataBytes,
+            { value: 0 } // No ETH transfer, just audit log
+        );
+
+        console.log(`⛓️ Blockchain transaction submitted: ${tx.hash}`);
+
+        // Wait for confirmation
+        const receipt = await tx.wait();
+        console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+
+        // Use database ID as blockchain UID (contract doesn't expose transaction count)
+        const blockchainUid = gradingId;
+
+        return {
+            txHash: tx.hash,
+            blockchainUid
+        };
+    } catch (error) {
+        console.error('❌ Blockchain recording failed:', error);
+        throw error;
     }
-} catch (error) {
-    console.error("Failed to initialize blockchain connection:", error);
 }
 
 // Health check endpoint
+
 
 /**
  * @swagger
@@ -211,11 +267,11 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
     try {
         const { card_name, card_set, card_year, condition, image_url } = req.body;
 
-        if (!card_name || !image_url) {
-            res.status(400).json({ success: false, message: 'Card name and image are required' });
-            return;
+        if (!card_name) {
+            return res.status(400).json({ success: false, message: 'Card name is required' });
         }
 
+        // First, insert the grading record
         const insertQuery = `
             INSERT INTO gradings (
                 card_name, card_set, card_year, condition, image_url, status
@@ -225,10 +281,31 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
 
         const values = [card_name, card_set, card_year, condition, image_url];
         const result = await getPool().query(insertQuery, values);
-
-        // Update uid to match id
         const insertedId = result.rows[0].id;
-        await getPool().query('UPDATE gradings SET uid = $1 WHERE id = $1', [insertedId]);
+
+        // Record submission on blockchain
+        let txHash = null;
+        let blockchainUid = null;
+        try {
+            const blockchainResult = await recordStatusOnBlockchain(insertedId, { card_name, card_set, card_year, condition, image_url }, 'Submitted', null);
+            txHash = blockchainResult.txHash;
+            blockchainUid = blockchainResult.blockchainUid;
+            console.log(`✅ Card ${insertedId} recorded on blockchain: ${txHash}`);
+        } catch (blockchainError) {
+            console.error('⚠️ Blockchain recording failed, continuing with database only:', blockchainError);
+        }
+
+        // Update the record with uid, tx_hash, and blockchain_uid
+        await getPool().query(
+            'UPDATE gradings SET uid = $1, tx_hash = $2, blockchain_uid = $3 WHERE id = $1',
+            [insertedId, txHash, blockchainUid]
+        );
+
+        // Insert into status history
+        await getPool().query(
+            'INSERT INTO grading_status_history (grading_id, status, tx_hash) VALUES ($1, $2, $3)',
+            [insertedId, 'Submitted', txHash]
+        );
 
         // Fetch the updated record
         const updatedResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [insertedId]);
@@ -236,7 +313,8 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
         res.json({
             success: true,
             grading: updatedResult.rows[0],
-            message: 'Card submitted for grading successfully'
+            message: 'Card submitted for grading successfully',
+            blockchain: txHash ? { txHash, blockchainUid } : null
         });
     } catch (error: any) {
         console.error(error);
@@ -259,6 +337,69 @@ app.get('/api/gradings', async (req: Request, res: Response) => {
         res.json({
             success: true,
             gradings: result.rows
+        });
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/gradings/:id/status:
+ *   patch:
+ *     summary: Update grading status and record on blockchain
+ */
+app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ success: false, message: 'Status is required' });
+        }
+
+        // Get current grading
+        const currentResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [id]);
+        if (currentResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Grading not found' });
+        }
+
+        const grading = currentResult.rows[0];
+
+        // Record status change on blockchain
+        let txHash = null;
+        let blockchainUid = null;
+        try {
+            // Pass full grading object for card details
+            const blockchainResult = await recordStatusOnBlockchain(parseInt(id as string), grading, status, grading.status);
+            txHash = blockchainResult.txHash;
+            blockchainUid = blockchainResult.blockchainUid;
+            console.log(`✅ Status update for card ${id} recorded on blockchain: ${txHash}`);
+        } catch (blockchainError) {
+            console.error('⚠️ Blockchain recording failed, continuing with database only:', blockchainError);
+        }
+
+        // Update status in database
+        await getPool().query(
+            'UPDATE gradings SET status = $1 WHERE id = $2',
+            [status, id]
+        );
+
+        // Insert into status history
+        await getPool().query(
+            'INSERT INTO grading_status_history (grading_id, status, tx_hash) VALUES ($1, $2, $3)',
+            [id, status, txHash]
+        );
+
+        // Fetch updated record
+        const updatedResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [id]);
+
+        res.json({
+            success: true,
+            grading: updatedResult.rows[0],
+            message: 'Status updated successfully',
+            blockchain: txHash ? { txHash, blockchainUid } : null
         });
     } catch (error: any) {
         console.error(error);
@@ -383,29 +524,30 @@ app.get('/api/transactions', async (req: Request, res: Response) => {
             return;
         }
 
-        const count = await contract.getTransactionCount();
-        const transactions = [];
+        // Endpoint disabled due to contract limitations
+        // const count = await contract.getTransactionCount();
+        const transactions: any[] = [];
 
         // Fetch last 10 transactions (or fewer)
-        const fetchCount = Math.min(Number(count), 10);
+        // const fetchCount = Math.min(Number(count), 10);
 
-        for (let i = 0; i < fetchCount; i++) {
-            // In a real app we might fetch in reverse order or use a multicall
-            const tx = await contract.getTransaction(i);
-            transactions.push({
-                id: i,
-                sender: tx.sender,
-                recipient: tx.recipient,
-                amount: ethers.formatEther(tx.amount),
-                data: tx.data,
-                timestamp: Number(tx.timestamp),
-                status: Number(tx.status) // 0=Pending, 1=Approved, 2=Rejected
-            });
-        }
+        // for (let i = 0; i < fetchCount; i++) {
+        // In a real app we might fetch in reverse order or use a multicall
+        // const tx = await contract.getTransaction(i);
+        // transactions.push({
+        //     id: i,
+        //     sender: tx.sender,
+        //     recipient: tx.recipient,
+        //     amount: ethers.formatEther(tx.amount),
+        //     data: tx.data,
+        //     timestamp: Number(tx.timestamp),
+        //     status: Number(tx.status) // 0=Pending, 1=Approved, 2=Rejected
+        // });
+        // }
 
         res.json({
             success: true,
-            count: Number(count),
+            count: 0,
             transactions: transactions
         });
     } catch (error: any) {
