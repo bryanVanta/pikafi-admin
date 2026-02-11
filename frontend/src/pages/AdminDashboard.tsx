@@ -1,17 +1,53 @@
-import { useEffect, useState } from 'react';
-import { getTransactions, api, type Transaction } from '../api';
-import { Check, Loader2, Search } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { getTransactions, api, type Transaction, getGradingDetails, uploadImage } from '../api';
+import { Check, Loader2, Search, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useDropzone } from 'react-dropzone';
 
 export function AdminDashboard() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+    const [gradingDetails, setGradingDetails] = useState<any>(null);
 
     // Grading Form State
+    const [cardName, setCardName] = useState('');
+    const [cardSet, setCardSet] = useState('');
+    const [cardYear, setCardYear] = useState('');
+    const [condition, setCondition] = useState('');
     const [grade, setGrade] = useState('');
-    const [comments, setComments] = useState('');
+
+    // Sub-grades
+    const [gradeCorners, setGradeCorners] = useState('');
+    const [gradeEdges, setGradeEdges] = useState('');
+    const [gradeSurface, setGradeSurface] = useState('');
+    const [gradeCentering, setGradeCentering] = useState('');
+
+    const [imageUrl, setImageUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
     const [processing, setProcessing] = useState(false);
+
+    const onDrop = useCallback(async (acceptedFiles: File[]) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const res = await uploadImage(file);
+            if (res.data.success) {
+                setImageUrl(res.data.url);
+            } else {
+                alert("Upload failed");
+            }
+        } catch (error) {
+            console.error("Upload error", error);
+            alert("Upload error");
+        } finally {
+            setUploading(false);
+        }
+    }, []);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] }, maxFiles: 1 });
 
     const fetchTransactions = async () => {
         try {
@@ -32,26 +68,69 @@ export function AdminDashboard() {
         return () => clearInterval(interval);
     }, []);
 
+    // Fetch details when selectedTx changes
+    useEffect(() => {
+        if (selectedTx && selectedTx.status === 1) { // If Approved/Graded
+            getGradingDetails(selectedTx.id).then(res => {
+                if (res.success) {
+                    setGradingDetails(res.grading);
+                } else {
+                    setGradingDetails(null);
+                }
+            });
+        } else {
+            setGradingDetails(null);
+            // Reset form if starting new
+            setCardName('');
+            setCardSet('');
+            setCardYear('');
+            setCondition('');
+            setGrade('');
+            setGradeCorners('');
+            setGradeEdges('');
+            setGradeSurface('');
+            setGradeCentering('');
+            setImageUrl('');
+        }
+    }, [selectedTx]);
+
     const handleGrade = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedTx) return;
 
+        if (!imageUrl) {
+            alert("Please upload an image first.");
+            return;
+        }
+
         setProcessing(true);
         try {
-            // Logic to keep existing recipient and amount, but update data with grade
-            const newData = JSON.stringify({ grade, comments, timestamp: Date.now() });
+            // Send everything to backend
+            const extraData = {
+                card_name: cardName,
+                card_set: cardSet,
+                card_year: cardYear,
+                condition: condition,
+                image_url: imageUrl,
+                grade: parseFloat(grade),
+                grade_corners: parseFloat(gradeCorners),
+                grade_edges: parseFloat(gradeEdges),
+                grade_surface: parseFloat(gradeSurface),
+                grade_centering: parseFloat(gradeCentering)
+            };
+
+            const newData = JSON.stringify({ status: "Graded", grade, ref: "db" });
 
             const res = await api.post(`/transactions/${selectedTx.id}/approve`, {
                 newRecipient: selectedTx.recipient, // Keep same recipient
                 newAmount: selectedTx.amount,       // Keep same amount
-                newData: newData
+                newData: newData,
+                ...extraData
             });
 
             if (res.data.success) {
                 alert("Graded successfully!");
                 setSelectedTx(null);
-                setGrade('');
-                setComments('');
                 fetchTransactions();
             }
         } catch (error) {
@@ -71,7 +150,6 @@ export function AdminDashboard() {
         }
     };
 
-    // Parse data field if it looks like JSON
     // Parse data field if it looks like JSON
     const parseData = (dataHex: string) => {
         if (!dataHex || dataHex === '0x') return 'No Data';
@@ -139,7 +217,7 @@ export function AdminDashboard() {
                                     <p className="font-mono text-xs text-blue-300 truncate">{tx.sender}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-400">Data / Product</p>
+                                    <p className="text-sm text-gray-400">Client Note:</p>
                                     <p className="text-sm bg-black/30 p-2 rounded mt-1 break-all font-mono text-xs">{parseData(tx.data)}</p>
                                 </div>
                             </motion.div>
@@ -151,12 +229,12 @@ export function AdminDashboard() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-8">
                         {selectedTx ? (
-                            <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
-                                <h3 className="text-xl font-bold mb-6">Grade Request #{selectedTx.id}</h3>
+                            <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl overflow-y-auto max-h-screen">
+                                <h3 className="text-xl font-bold mb-6">Request #{selectedTx.id}</h3>
 
                                 <div className="space-y-4 mb-6">
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase font-bold">Current Status</label>
+                                        <label className="text-xs text-gray-500 uppercase font-bold">Status</label>
                                         <div className="mt-1">{getStatusBadge(selectedTx.status)}</div>
                                     </div>
                                     <div>
@@ -165,47 +243,125 @@ export function AdminDashboard() {
                                     </div>
                                 </div>
 
-                                {selectedTx.status === 0 ? (
-                                    <form onSubmit={handleGrade} className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1">Assign Grade</label>
-                                            <select
-                                                value={grade}
-                                                onChange={(e) => setGrade(e.target.value)}
-                                                className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 focus:border-blue-500 focus:outline-none"
-                                                required
-                                            >
-                                                <option value="">Select Grade</option>
-                                                <option value="A+">A+ (Mint)</option>
-                                                <option value="A">A (Near Mint)</option>
-                                                <option value="B">B (Excellent)</option>
-                                                <option value="C">C (Good)</option>
-                                                <option value="F">F (Rejected)</option>
-                                            </select>
+                                {selectedTx.status === 1 && gradingDetails ? (
+                                    <div className="space-y-4 bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                                        <h4 className="text-green-400 font-bold flex items-center gap-2"><Check size={16} /> Grading Complete</h4>
+                                        <img src={gradingDetails.image_url} alt="Graded Card" className="w-full rounded-lg border border-gray-600 shadow-lg" />
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-xs text-gray-500">Card Name</p>
+                                                <p className="font-bold">{gradingDetails.card_name}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Set</p>
+                                                <p>{gradingDetails.card_set}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Grade</p>
+                                                <p className="text-2xl font-bold text-blue-400">{gradingDetails.grade}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Condition</p>
+                                                <p>{gradingDetails.condition}</p>
+                                            </div>
+                                            <div className="col-span-2 mt-2">
+                                                <p className="text-xs text-gray-500">Graded Date</p>
+                                                <p className="text-sm">{new Date(gradingDetails.graded_at).toLocaleString()}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1">Admin Comments</label>
-                                            <textarea
-                                                value={comments}
-                                                onChange={(e) => setComments(e.target.value)}
-                                                className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 focus:border-blue-500 focus:outline-none h-24"
-                                                placeholder="Add notes about authenticity or condition..."
-                                                required
-                                            />
+
+                                        <div className="grid grid-cols-2 gap-2 text-xs bg-black/20 p-2 rounded">
+                                            <p>Corners: <span className="text-white">{gradingDetails.grade_corners}</span></p>
+                                            <p>Edges: <span className="text-white">{gradingDetails.grade_edges}</span></p>
+                                            <p>Surface: <span className="text-white">{gradingDetails.grade_surface}</span></p>
+                                            <p>Centering: <span className="text-white">{gradingDetails.grade_centering}</span></p>
+                                        </div>
+                                    </div>
+                                ) : selectedTx.status === 0 ? (
+                                    <form onSubmit={handleGrade} className="space-y-4">
+
+                                        {/* Image Upload */}
+                                        <div
+                                            {...getRootProps()}
+                                            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600 hover:border-gray-500'
+                                                }`}
+                                        >
+                                            <input {...getInputProps()} />
+                                            {imageUrl ? (
+                                                <div className="relative">
+                                                    <img src={imageUrl} alt="Upload" className="h-32 mx-auto rounded object-contain" />
+                                                    <div className="text-xs text-green-400 mt-2">Image Uploaded Successfully</div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-2 text-gray-400">
+                                                    {uploading ? <Loader2 className="animate-spin text-blue-400" /> : <Upload />}
+                                                    <span className="text-sm">Drag & drop card image here</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-xs text-gray-400">Card Name</label>
+                                                <input value={cardName} onChange={e => setCardName(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm" required />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-400">Set</label>
+                                                <input value={cardSet} onChange={e => setCardSet(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm" required />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-400">Year</label>
+                                                <input value={cardYear} onChange={e => setCardYear(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm" placeholder="e.g. 1999" required />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-400">Condition</label>
+                                                <select value={condition} onChange={e => setCondition(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm" required >
+                                                    <option value="">Select</option>
+                                                    <option value="Raw">Raw</option>
+                                                    <option value="Graded">Graded</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-700">
+                                            <h4 className="font-bold mb-3 text-sm">Grading Scores (1-10)</h4>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-xs text-gray-400 text-blue-300">Overall Grade</label>
+                                                    <input type="number" step="0.5" max="10" value={grade} onChange={e => setGrade(e.target.value)} className="w-full bg-gray-900 border border-blue-600 rounded p-2 text-sm font-bold" required />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Corners</label>
+                                                    <input type="number" step="0.5" max="10" value={gradeCorners} onChange={e => setGradeCorners(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm" required />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Edges</label>
+                                                    <input type="number" step="0.5" max="10" value={gradeEdges} onChange={e => setGradeEdges(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm" required />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Surface</label>
+                                                    <input type="number" step="0.5" max="10" value={gradeSurface} onChange={e => setGradeSurface(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm" required />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Centering</label>
+                                                    <input type="number" step="0.5" max="10" value={gradeCentering} onChange={e => setGradeCentering(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm" required />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <button
                                             type="submit"
-                                            disabled={processing}
-                                            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                                            disabled={processing || uploading}
+                                            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 mt-4"
                                         >
                                             {processing ? <Loader2 className="animate-spin" size={20} /> : <Check size={20} />}
-                                            Submit Grade
+                                            Finalize Grading
                                         </button>
                                     </form>
                                 ) : (
                                     <div className="bg-gray-900/50 p-4 rounded-lg text-center text-gray-400 text-sm">
-                                        This transaction has already been processed.
+                                        This transaction has most likely been rejected or is in an unknown state.
                                     </div>
                                 )}
                             </div>

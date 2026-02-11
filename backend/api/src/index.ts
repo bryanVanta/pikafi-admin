@@ -5,35 +5,29 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import { ethers } from 'ethers';
 import aiRoutes from './routes/ai';
+import { getPool } from './db';
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
 
-// DB Check
-import { getPool } from './db';
-import { PoolClient } from 'pg';
 
-getPool().connect().then((client: PoolClient) => {
-    console.log('✅ Database connected successfully');
-    client.release();
-}).catch((err: Error) => {
-    console.error('❌ Database connection failed:', err);
-});
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // Restarted for Escrow Logic update
+app.use(express.json());
 
 // Routes
 import assetsRouter from './routes/assets';
 import aiRouter from './routes/ai';
 import marketRouter from './routes/market';
+import uploadRouter from './routes/upload';
 
 app.use('/api/assets', assetsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/market', marketRouter);
+app.use('/api/upload', uploadRouter);
 
 // Swagger Configuration
 const swaggerOptions = {
@@ -137,21 +131,61 @@ app.post('/api/transactions', async (req: Request, res: Response) => {
 app.post('/api/transactions/:id/approve', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { newRecipient, newAmount, newData } = req.body;
+        const {
+            newRecipient,
+            newAmount,
+            newData,
+            // Extended Grading Fields
+            card_name,
+            card_set,
+            card_year,
+            condition,
+            image_url,
+            grade,
+            grade_corners,
+            grade_edges,
+            grade_surface,
+            grade_centering
+        } = req.body;
 
         if (!contract) {
             res.status(503).json({ success: false, message: "Blockchain unavailable" });
             return;
         }
 
-        const txValue = newAmount ? ethers.parseEther(newAmount.toString()) : 0;
-        // logic note: usually we'd calculate diff, but here contract adds msg.value to existing amount.
-        // For simplicity API assumes we send 0 extra ETH unless specified.
+        try {
+            const insertQuery = `
+                INSERT INTO gradings (
+                    uid, blockchain_uid, card_name, card_set, card_year, condition, 
+                    image_url, grade, grade_corners, grade_edges, grade_surface, grade_centering,
+                    status
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'Graded')
+                RETURNING id;
+            `;
+            const values = [
+                id, id, card_name, card_set, card_year, condition,
+                image_url, grade, grade_corners, grade_edges, grade_surface, grade_centering
+            ];
 
-        const txData = newData ? ethers.toUtf8Bytes(newData) : "0x";
+            await getPool().query(insertQuery, values);
+            console.log(`✅ Saved grading metadata for Transaction #${id} to DB.`);
+        } catch (dbError) {
+            console.error("❌ DB Insert Failed:", dbError);
+            res.status(500).json({ success: false, message: "Database insertion failed. Blockchain tx aborted." });
+            return;
+        }
+
+        const txValue = newAmount ? ethers.parseEther(newAmount.toString()) : 0;
+
+        const onChainData = JSON.stringify({
+            status: "Graded",
+            grade: grade,
+            ref: "pikafi-db"
+        });
+        const txData = ethers.toUtf8Bytes(onChainData);
 
         console.log(`Approving transaction #${id}...`);
-        const tx = await contract.approveTransaction(id, newRecipient, txData); // Value handling omitted for simple demo
+        const tx = await contract.approveTransaction(id, newRecipient, txData);
 
         console.log(`Approval sent: ${tx.hash}. Waiting...`);
         const receipt = await tx.wait();
@@ -159,7 +193,101 @@ app.post('/api/transactions/:id/approve', async (req: Request, res: Response) =>
         res.json({
             success: true,
             hash: receipt.hash,
-            message: 'Transaction Approved and On-Chain!',
+            message: 'Transaction Approved and Graded!',
+        });
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/gradings:
+ *   post:
+ *     summary: Submit a new card for grading
+ */
+app.post('/api/gradings', async (req: Request, res: Response) => {
+    try {
+        const { card_name, card_set, card_year, condition, image_url } = req.body;
+
+        if (!card_name || !image_url) {
+            res.status(400).json({ success: false, message: 'Card name and image are required' });
+            return;
+        }
+
+        const insertQuery = `
+            INSERT INTO gradings (
+                card_name, card_set, card_year, condition, image_url, status
+            ) VALUES ($1, $2, $3, $4, $5, 'Submitted')
+            RETURNING *;
+        `;
+
+        const values = [card_name, card_set, card_year, condition, image_url];
+        const result = await getPool().query(insertQuery, values);
+
+        // Update uid to match id
+        const insertedId = result.rows[0].id;
+        await getPool().query('UPDATE gradings SET uid = $1 WHERE id = $1', [insertedId]);
+
+        // Fetch the updated record
+        const updatedResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [insertedId]);
+
+        res.json({
+            success: true,
+            grading: updatedResult.rows[0],
+            message: 'Card submitted for grading successfully'
+        });
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/gradings:
+ *   get:
+ *     summary: Get all grading submissions
+ */
+app.get('/api/gradings', async (req: Request, res: Response) => {
+    try {
+        const result = await getPool().query(
+            'SELECT * FROM gradings ORDER BY submitted_at DESC'
+        );
+
+        res.json({
+            success: true,
+            gradings: result.rows
+        });
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/transactions/:uid/grading:
+ *   get:
+ *     summary: Get grading details from DB
+ */
+app.get('/api/transactions/:uid/grading', async (req: Request, res: Response) => {
+    try {
+        const { uid } = req.params;
+        const result = await getPool().query(
+            'SELECT * FROM gradings WHERE uid = $1',
+            [uid]
+        );
+
+        if (result.rows.length === 0) {
+            res.status(404).json({ success: false, message: 'No grading details found' });
+            return;
+        }
+
+        res.json({
+            success: true,
+            grading: result.rows[0]
         });
     } catch (error: any) {
         console.error(error);
