@@ -265,29 +265,64 @@ app.post('/api/transactions/:id/approve', async (req: Request, res: Response) =>
  */
 app.post('/api/gradings', async (req: Request, res: Response) => {
     try {
-        const { card_name, card_set, card_year, condition, image_url } = req.body;
+        const {
+            card_name, card_set, card_year, condition, image_url,
+            customer_name, customer_id_type, customer_id_number, customer_contact, customer_email
+        } = req.body;
 
         if (!card_name) {
             return res.status(400).json({ success: false, message: 'Card name is required' });
         }
 
-        // First, insert the grading record
+        if (!customer_id_number) {
+            return res.status(400).json({ success: false, message: 'Customer ID number is required' });
+        }
+
+        // Step 1: Check if customer exists by id_number
+        let customerId;
+        const customerCheck = await getPool().query(
+            'SELECT id FROM customers WHERE id_number = $1',
+            [customer_id_number]
+        );
+
+        if (customerCheck.rows.length > 0) {
+            // Customer exists, use existing ID
+            customerId = customerCheck.rows[0].id;
+            console.log(`✅ Using existing customer ID: ${customerId}`);
+        } else {
+            // Customer doesn't exist, create new one
+            const customerInsert = await getPool().query(
+                `INSERT INTO customers (name, id_type, id_number, contact, email)
+                 VALUES ($1, $2, $3, $4, $5)
+                 RETURNING id`,
+                [customer_name, customer_id_type, customer_id_number, customer_contact, customer_email]
+            );
+            customerId = customerInsert.rows[0].id;
+            console.log(`✅ Created new customer ID: ${customerId}`);
+        }
+
+        // Step 2: Insert grading record with customer_id foreign key
         const insertQuery = `
             INSERT INTO gradings (
-                card_name, card_set, card_year, condition, image_url, status
-            ) VALUES ($1, $2, $3, $4, $5, 'Submitted')
+                card_name, card_set, card_year, condition, image_url, status, customer_id
+            ) VALUES ($1, $2, $3, $4, $5, 'Submitted', $6)
             RETURNING *;
         `;
 
-        const values = [card_name, card_set, card_year, condition, image_url];
+        const values = [card_name, card_set, card_year, condition, image_url, customerId];
         const result = await getPool().query(insertQuery, values);
         const insertedId = result.rows[0].id;
 
-        // Record submission on blockchain
+        // Step 3: Record submission on blockchain (no customer PII)
         let txHash = null;
         let blockchainUid = null;
         try {
-            const blockchainResult = await recordStatusOnBlockchain(insertedId, { card_name, card_set, card_year, condition, image_url }, 'Submitted', null);
+            const blockchainResult = await recordStatusOnBlockchain(
+                insertedId,
+                { card_name, card_set, card_year, condition, image_url },
+                'Submitted',
+                null
+            );
             txHash = blockchainResult.txHash;
             blockchainUid = blockchainResult.blockchainUid;
             console.log(`✅ Card ${insertedId} recorded on blockchain: ${txHash}`);
@@ -295,20 +330,28 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
             console.error('⚠️ Blockchain recording failed, continuing with database only:', blockchainError);
         }
 
-        // Update the record with uid, tx_hash, and blockchain_uid
+        // Step 4: Update the record with uid, tx_hash, and blockchain_uid
         await getPool().query(
             'UPDATE gradings SET uid = $1, tx_hash = $2, blockchain_uid = $3 WHERE id = $1',
             [insertedId, txHash, blockchainUid]
         );
 
-        // Insert into status history
+        // Step 5: Insert into status history
         await getPool().query(
             'INSERT INTO grading_status_history (grading_id, status, tx_hash) VALUES ($1, $2, $3)',
             [insertedId, 'Submitted', txHash]
         );
 
-        // Fetch the updated record
-        const updatedResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [insertedId]);
+        // Step 6: Fetch the updated record with customer data
+        const updatedResult = await getPool().query(
+            `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
+                    c.id_number as customer_id_number, c.contact as customer_contact, 
+                    c.email as customer_email
+             FROM gradings g
+             LEFT JOIN customers c ON g.customer_id = c.id
+             WHERE g.id = $1`,
+            [insertedId]
+        );
 
         res.json({
             success: true,
@@ -331,7 +374,12 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
 app.get('/api/gradings', async (req: Request, res: Response) => {
     try {
         const result = await getPool().query(
-            'SELECT * FROM gradings ORDER BY submitted_at DESC'
+            `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
+                    c.id_number as customer_id_number, c.contact as customer_contact, 
+                    c.email as customer_email
+             FROM gradings g
+             LEFT JOIN customers c ON g.customer_id = c.id
+             ORDER BY g.submitted_at DESC`
         );
 
         res.json({
@@ -392,8 +440,16 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             [id, status, txHash]
         );
 
-        // Fetch updated record
-        const updatedResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [id]);
+        // Fetch updated record with customer data
+        const updatedResult = await getPool().query(
+            `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
+                    c.id_number as customer_id_number, c.contact as customer_contact, 
+                    c.email as customer_email
+             FROM gradings g
+             LEFT JOIN customers c ON g.customer_id = c.id
+             WHERE g.id = $1`,
+            [id]
+        );
 
         res.json({
             success: true,
@@ -417,7 +473,12 @@ app.get('/api/transactions/:uid/grading', async (req: Request, res: Response) =>
     try {
         const { uid } = req.params;
         const result = await getPool().query(
-            'SELECT * FROM gradings WHERE uid = $1',
+            `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
+                    c.id_number as customer_id_number, c.contact as customer_contact, 
+                    c.email as customer_email
+             FROM gradings g
+             LEFT JOIN customers c ON g.customer_id = c.id
+             WHERE g.uid = $1`,
             [uid]
         );
 

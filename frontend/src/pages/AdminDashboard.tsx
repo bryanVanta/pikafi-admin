@@ -276,6 +276,34 @@ export function AdminDashboard() {
                                         </div>
                                     )}
 
+                                    {/* Customer Details */}
+                                    <div className="pt-3 border-t border-gray-700">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase">Customer Info</h4>
+                                            {grading.customer_id && (
+                                                <span className="text-[10px] bg-gray-700 px-1.5 py-0.5 rounded text-gray-400">ID: #{grading.customer_id}</span>
+                                            )}
+                                        </div>
+                                        <div className="space-y-1 text-sm">
+                                            <p className="flex justify-between">
+                                                <span className="text-gray-500">Name:</span>
+                                                <span className="text-white font-medium">{grading.customer_name || 'N/A'}</span>
+                                            </p>
+                                            <p className="flex justify-between">
+                                                <span className="text-gray-500">ID ({grading.customer_id_type || 'ID'}):</span>
+                                                <span className="text-gray-300 font-mono text-xs">{grading.customer_id_number || 'N/A'}</span>
+                                            </p>
+                                            <p className="flex justify-between">
+                                                <span className="text-gray-500">Contact:</span>
+                                                <span className="text-gray-300">{grading.customer_contact || 'N/A'}</span>
+                                            </p>
+                                            <div className="pt-1">
+                                                <span className="text-gray-500 block text-xs">Email:</span>
+                                                <span className="text-blue-400 truncate block">{grading.customer_email || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Status Update Dropdown */}
                                     <div>
                                         <label className="text-xs text-gray-500 block mb-1">Update Status:</label>
