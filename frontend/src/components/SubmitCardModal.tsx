@@ -26,12 +26,61 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
     const [customerContact, setCustomerContact] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
 
-    const onDrop = useCallback((acceptedFiles: File[]) => {
+    const [imageUrl, setImageUrl] = useState('');
+    const [isIdentifying, setIsIdentifying] = useState(false);
+
+    const handleIdentify = async (url: string) => {
+        setIsIdentifying(true);
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/ai/identify`, { imageUrl: url });
+            if (res.data.success && res.data.data) {
+                const { card_name, card_set } = res.data.data;
+                setCardName(card_name || '');
+
+                // Parse card_set which may include year (e.g., "Paldean Fates 2024")
+                const setMatch = card_set?.match(/^(.+?)\s+(\d{4})$/);
+                if (setMatch) {
+                    setCardSet(setMatch[1].trim());
+                    setCardYear(setMatch[2]);
+                } else {
+                    setCardSet(card_set || '');
+                }
+            }
+        } catch (error: any) {
+            console.error('Identification failed:', error);
+            const errorMessage = error.response?.data?.message || 'Failed to identify card';
+            alert(`AI Identification Failed: ${errorMessage}`);
+        } finally {
+            setIsIdentifying(false);
+        }
+    };
+
+    const handleUpload = async (file: File) => {
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+            const uploadRes = await axios.post(`${import.meta.env.VITE_API_URL}/upload/cloudinary`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const url = uploadRes.data.url;
+            setImageUrl(url);
+
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Image upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const onDrop = useCallback(async (acceptedFiles: File[]) => {
         const file = acceptedFiles[0];
         if (file) {
             setImageFile(file);
+            await handleUpload(file);
         }
-    }, []);
+    }, [import.meta.env.VITE_API_URL]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
@@ -41,19 +90,13 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!imageUrl) {
+            alert("Please wait for the image to finish uploading.");
+            return;
+        }
+
         setUploading(true);
-
         try {
-            let imageUrl = '';
-            if (imageFile) {
-                const formData = new FormData();
-                formData.append('image', imageFile);
-                const uploadRes = await axios.post(`${import.meta.env.VITE_API_URL}/upload/cloudinary`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-                imageUrl = uploadRes.data.url;
-            }
-
             await axios.post(`${import.meta.env.VITE_API_URL}/gradings`, {
                 card_name: cardName,
                 card_set: cardSet,
@@ -76,11 +119,13 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
             setCardYear('');
             setCondition('Near Mint');
             setImageFile(null);
+            setImageUrl('');
             setCustomerName('');
             setCustomerIdType('NRIC');
             setCustomerIdNumber('');
             setCustomerContact('');
             setCustomerEmail('');
+            onSuccess?.(); // Use the callback if provided
             window.location.reload();
         } catch (error) {
             console.error('Error submitting card:', error);
@@ -97,7 +142,7 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto no-scrollbar"
             >
                 <div className="p-6 border-b border-zinc-800 flex justify-between items-center sticky top-0 bg-zinc-900 z-10">
                     <h2 className="text-xl font-bold text-white">Submit New Card</h2>
@@ -171,17 +216,27 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
 
                     {/* Card Information Section */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-zinc-300 border-b border-zinc-800 pb-2">Card Details</h3>
+                        <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                            <h3 className="text-lg font-semibold text-zinc-300">Card Details</h3>
+                            {isIdentifying && (
+                                <div className="flex items-center gap-2 text-blue-400 text-xs animate-pulse">
+                                    <Loader2 className="animate-spin" size={14} />
+                                    AI is identifying card...
+                                </div>
+                            )}
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400 mb-1">Card Name</label>
-                            <input
-                                type="text"
-                                required
-                                value={cardName}
-                                onChange={(e) => setCardName(e.target.value)}
-                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
-                                placeholder="e.g. Charizard Base Set"
-                            />
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    required
+                                    value={cardName}
+                                    onChange={(e) => setCardName(e.target.value)}
+                                    className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500 ${isIdentifying ? 'opacity-50' : ''}`}
+                                    placeholder={isIdentifying ? "Identifying..." : "e.g. Charizard Base Set"}
+                                />
+                            </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -190,8 +245,8 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
                                     type="text"
                                     value={cardSet}
                                     onChange={(e) => setCardSet(e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
-                                    placeholder="e.g. Base Set"
+                                    className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500 ${isIdentifying ? 'opacity-50' : ''}`}
+                                    placeholder={isIdentifying ? "Identifying..." : "e.g. Base Set"}
                                 />
                             </div>
                             <div>
@@ -200,8 +255,8 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
                                     type="text"
                                     value={cardYear}
                                     onChange={(e) => setCardYear(e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
-                                    placeholder="e.g. 1999"
+                                    className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500 ${isIdentifying ? 'opacity-50' : ''}`}
+                                    placeholder={isIdentifying ? "Identifying..." : "e.g. 1999"}
                                 />
                             </div>
                         </div>
@@ -224,25 +279,42 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
                     </div>
 
                     {/* Image Upload */}
-                    <div
-                        {...getRootProps()}
-                        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700 hover:border-zinc-600'}`}
-                    >
-                        <input {...getInputProps()} />
-                        {imageFile ? (
-                            <div className="relative">
-                                {/* Create a fake URL for preview if it's a File object */}
-                                <img src={URL.createObjectURL(imageFile)} alt="Upload" className="h-40 mx-auto rounded object-contain" />
-                                <div className="text-xs text-green-400 mt-2">✓ Image Selected: {imageFile.name}</div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center gap-3 text-zinc-400">
-                                {uploading ? <Loader2 className="animate-spin text-blue-400" size={32} /> : <Upload size={32} />}
-                                <div>
-                                    <p className="font-medium">Drag & drop card image here</p>
-                                    <p className="text-sm text-zinc-500 mt-1">or click to browse</p>
+                    <div className="space-y-4">
+                        <div
+                            {...getRootProps()}
+                            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700 hover:border-zinc-600'}`}
+                        >
+                            <input {...getInputProps()} />
+                            {imageFile ? (
+                                <div className="relative">
+                                    <img src={URL.createObjectURL(imageFile)} alt="Upload" className="h-40 mx-auto rounded object-contain" />
+                                    <div className="text-xs text-green-400 mt-2">✓ Image Selected: {imageFile.name}</div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="flex flex-col items-center gap-3 text-zinc-400">
+                                    {uploading ? <Loader2 className="animate-spin text-blue-400" size={32} /> : <Upload size={32} />}
+                                    <div>
+                                        <p className="font-medium">Drag & drop card image here</p>
+                                        <p className="text-sm text-zinc-500 mt-1">or click to browse</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {imageFile && imageUrl && (
+                            <button
+                                type="button"
+                                onClick={() => handleIdentify(imageUrl)}
+                                disabled={isIdentifying}
+                                className="w-full py-2 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                            >
+                                {isIdentifying ? (
+                                    <Loader2 size={16} className="animate-spin text-blue-400" />
+                                ) : (
+                                    <span className="text-blue-400"></span>
+                                )}
+                                {isIdentifying ? 'Identifying...' : 'Identify Card with AI'}
+                            </button>
                         )}
                     </div>
 
