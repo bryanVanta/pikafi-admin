@@ -5,6 +5,7 @@ import { Check, Loader2, Search, Upload, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { SubmitCardModal } from '../components/SubmitCardModal';
+import { AuthenticationModal } from '../components/AuthenticationModal';
 
 export function AdminDashboard() {
     const navigate = useNavigate();
@@ -31,6 +32,11 @@ export function AdminDashboard() {
     const [imageUrl, setImageUrl] = useState('');
     const [uploading, setUploading] = useState(false);
     const [processing, setProcessing] = useState(false);
+
+    // Authentication modal state
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [pendingGrading, setPendingGrading] = useState<any>(null);
+    const [pendingStatus, setPendingStatus] = useState<string>('');
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         const file = acceptedFiles[0];
@@ -315,15 +321,31 @@ export function AdminDashboard() {
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={async (e) => {
                                                 const newStatus = e.target.value;
+
+                                                // Check if we need authentication verification
+                                                if (newStatus === 'Condition Inspection' && grading.status === 'Authentication in Progress') {
+                                                    // Show authentication modal instead of directly updating
+                                                    setPendingGrading(grading);
+                                                    setPendingStatus(newStatus);
+                                                    setShowAuthModal(true);
+                                                    // Reset the dropdown to current status
+                                                    e.target.value = grading.status;
+                                                    return;
+                                                }
+
                                                 try {
                                                     const res = await api.patch(`/gradings/${grading.id}/status`, { status: newStatus });
                                                     if (res.data.success) {
                                                         fetchGradings(); // Refresh the list
                                                         alert(`Status updated! Blockchain TX: ${res.data.blockchain?.txHash || 'N/A'}`);
                                                     }
-                                                } catch (error) {
+                                                } catch (error: any) {
                                                     console.error('Status update failed:', error);
-                                                    alert('Failed to update status');
+                                                    if (error.response?.data?.requiresAuthentication) {
+                                                        alert('Authentication result is required for this transition');
+                                                    } else {
+                                                        alert('Failed to update status');
+                                                    }
                                                 }
                                             }}
                                             className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 cursor-pointer"
@@ -553,6 +575,42 @@ export function AdminDashboard() {
                 </div>
 
             </div>
+
+            <AuthenticationModal
+                isOpen={showAuthModal}
+                onClose={() => {
+                    setShowAuthModal(false);
+                    setPendingGrading(null);
+                    setPendingStatus('');
+                }}
+                onConfirm={async (result: 'Authentic' | 'Fake') => {
+                    if (!pendingGrading) return;
+
+                    try {
+                        const res = await api.patch(`/gradings/${pendingGrading.id}/status`, {
+                            status: pendingStatus,
+                            authentication_result: result
+                        });
+
+                        if (res.data.success) {
+                            fetchGradings(); // Refresh the list
+                            if (res.data.terminated) {
+                                alert(`Card marked as counterfeit and rejected. Blockchain TX: ${res.data.blockchain?.txHash || 'N/A'}`);
+                            } else {
+                                alert(`Card authenticated successfully! Blockchain TX: ${res.data.blockchain?.txHash || 'N/A'}`);
+                            }
+                        }
+                    } catch (error: any) {
+                        console.error('Authentication failed:', error);
+                        alert('Failed to update authentication status');
+                    } finally {
+                        setShowAuthModal(false);
+                        setPendingGrading(null);
+                        setPendingStatus('');
+                    }
+                }}
+                cardName={pendingGrading?.card_name || ''}
+            />
 
             <SubmitCardModal
                 isOpen={isModalOpen}

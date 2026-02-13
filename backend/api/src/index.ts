@@ -404,7 +404,7 @@ app.get('/api/gradings', async (req: Request, res: Response) => {
 app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, authentication_result } = req.body;
 
         if (!status) {
             return res.status(400).json({ success: false, message: 'Status is required' });
@@ -418,12 +418,41 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
 
         const grading = currentResult.rows[0];
 
+        // Prevent updates on rejected cards
+        if (grading.status === 'Rejected - Counterfeit') {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot update status of rejected cards',
+                terminated: true
+            });
+        }
+
+        // Handle authentication result
+        let finalStatus = status;
+        let isTerminated = false;
+
+        // If transitioning to Condition Inspection from Authentication in Progress
+        if (status === 'Condition Inspection' && grading.status === 'Authentication in Progress') {
+            if (!authentication_result) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Authentication result is required when moving to Condition Inspection',
+                    requiresAuthentication: true
+                });
+            }
+
+            if (authentication_result === 'Fake') {
+                finalStatus = 'Rejected - Counterfeit';
+                isTerminated = true;
+            }
+        }
+
         // Record status change on blockchain
         let txHash = null;
         let blockchainUid = null;
         try {
             // Pass full grading object for card details
-            const blockchainResult = await recordStatusOnBlockchain(parseInt(id as string), grading, status, grading.status);
+            const blockchainResult = await recordStatusOnBlockchain(parseInt(id as string), grading, finalStatus, grading.status);
             txHash = blockchainResult.txHash;
             blockchainUid = blockchainResult.blockchainUid;
             console.log(`✅ Status update for card ${id} recorded on blockchain: ${txHash}`);
@@ -431,16 +460,23 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             console.error('⚠️ Blockchain recording failed, continuing with database only:', blockchainError);
         }
 
-        // Update status in database
-        await getPool().query(
-            'UPDATE gradings SET status = $1 WHERE id = $2',
-            [status, id]
-        );
+        // Update status and authentication_result in database
+        if (authentication_result) {
+            await getPool().query(
+                'UPDATE gradings SET status = $1, authentication_result = $2 WHERE id = $3',
+                [finalStatus, authentication_result, id]
+            );
+        } else {
+            await getPool().query(
+                'UPDATE gradings SET status = $1 WHERE id = $2',
+                [finalStatus, id]
+            );
+        }
 
         // Insert into status history
         await getPool().query(
             'INSERT INTO grading_status_history (grading_id, status, tx_hash) VALUES ($1, $2, $3)',
-            [id, status, txHash]
+            [id, finalStatus, txHash]
         );
 
         // Fetch updated record with customer data
@@ -457,8 +493,9 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
         res.json({
             success: true,
             grading: updatedResult.rows[0],
-            message: 'Status updated successfully',
-            blockchain: txHash ? { txHash, blockchainUid } : null
+            message: isTerminated ? 'Card marked as counterfeit and rejected' : 'Status updated successfully',
+            blockchain: txHash ? { txHash, blockchainUid } : null,
+            terminated: isTerminated
         });
     } catch (error: any) {
         console.error(error);
