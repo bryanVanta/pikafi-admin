@@ -314,9 +314,9 @@ export function AdminDashboard() {
                                                 <span>Grade</span>
                                             </button>
 
-                                            {grading.tx_hash && (
+                                            {(grading.latest_tx_hash || grading.tx_hash) && (
                                                 <a
-                                                    href={`https://sepolia.arbiscan.io/tx/${grading.tx_hash}`}
+                                                    href={`https://sepolia.arbiscan.io/tx/${grading.latest_tx_hash || grading.tx_hash}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     onClick={(e) => e.stopPropagation()}

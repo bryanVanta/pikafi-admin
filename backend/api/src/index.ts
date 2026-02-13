@@ -377,7 +377,12 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
 app.get('/api/gradings', async (req: Request, res: Response) => {
     try {
         const result = await getPool().query(
-            `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
+            `SELECT g.*, 
+                    COALESCE(
+                        (SELECT tx_hash FROM grading_status_history WHERE grading_id = g.id AND tx_hash IS NOT NULL ORDER BY id DESC LIMIT 1),
+                        g.tx_hash
+                    ) as latest_tx_hash,
+                    c.name as customer_name, c.id_type as customer_id_type, 
                     c.id_number as customer_id_number, c.contact as customer_contact, 
                     c.email as customer_email
              FROM gradings g
