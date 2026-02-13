@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getTransactions, api, type Transaction, getGradingDetails, uploadImage } from '../api';
 import { Check, Loader2, Search, Upload, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -6,6 +7,7 @@ import { useDropzone } from 'react-dropzone';
 import { SubmitCardModal } from '../components/SubmitCardModal';
 
 export function AdminDashboard() {
+    const navigate = useNavigate();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [gradings, setGradings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -238,7 +240,8 @@ export function AdminDashboard() {
                                 key={grading.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="bg-gray-800 rounded-xl border border-gray-700 overflow-visible hover:border-blue-500/50 transition-all shadow-lg relative pt-6"
+                                className="bg-gray-800 rounded-xl border border-gray-700 overflow-visible hover:border-blue-500/50 transition-all shadow-lg relative pt-6 cursor-pointer group"
+                                onClick={() => navigate(`/grading/${grading.id}`)}
                             >
                                 {/* Circular ID Badge at top center */}
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
@@ -251,7 +254,7 @@ export function AdminDashboard() {
                                     <img
                                         src={grading.image_url}
                                         alt={grading.card_name}
-                                        className="w-full h-full object-contain"
+                                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                                     />
                                     {grading.grade && (
                                         <div className="absolute top-2 right-2 bg-blue-600 text-white font-bold text-lg px-3 py-1 rounded-lg shadow-lg">
@@ -309,6 +312,7 @@ export function AdminDashboard() {
                                         <label className="text-xs text-gray-500 block mb-1">Update Status:</label>
                                         <select
                                             value={grading.status}
+                                            onClick={(e) => e.stopPropagation()}
                                             onChange={async (e) => {
                                                 const newStatus = e.target.value;
                                                 try {
@@ -322,7 +326,7 @@ export function AdminDashboard() {
                                                     alert('Failed to update status');
                                                 }
                                             }}
-                                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 cursor-pointer"
                                         >
                                             <option value="Submitted">Submitted</option>
                                             <option value="Authentication in Progress">Authentication in Progress</option>
@@ -345,7 +349,8 @@ export function AdminDashboard() {
                                             href={`https://sepolia.arbiscan.io/tx/${grading.tx_hash}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-xs text-blue-400 font-medium transition-colors"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-xs text-blue-400 font-medium transition-colors cursor-pointer"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
