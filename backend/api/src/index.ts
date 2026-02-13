@@ -509,54 +509,57 @@ app.get('/api/transactions/:uid/grading', async (req: Request, res: Response) =>
 app.get('/api/transactions/:id/history', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        if (!contract) {
-            res.status(503).json({ success: false, message: "Blockchain unavailable" });
-            return;
-        }
-
-        // Fetch events
-        // Note: Filters depend on the indexed arguments in Solidity
-        const submittedFilter = contract.filters.TransactionSubmitted(id);
-        const approvedFilter = contract.filters.TransactionApproved(id);
-
-        const [submittedEvents, approvedEvents] = await Promise.all([
-            contract.queryFilter(submittedFilter),
-            contract.queryFilter(approvedFilter)
-        ]);
 
         const history = [];
 
-        // Process Submitted Events
-        for (const event of submittedEvents) {
-            // Force type casting to any to access args safely
-            const e = event as any;
-            const block = await event.getBlock(); // get timestamp
-            history.push({
-                type: 'Submitted',
-                hash: event.transactionHash,
-                timestamp: block.timestamp,
-                sender: e.args[1],
-                recipient: e.args[2],
-                amount: ethers.formatEther(e.args[3]),
-                blockNumber: event.blockNumber
-            });
-        }
+        // Fetch status updates from database
+        // First, get the grading record to find the database ID
+        const gradingResult = await getPool().query(
+            'SELECT id FROM gradings WHERE uid = $1',
+            [id]
+        );
 
-        // Process Approved Events
-        for (const event of approvedEvents) {
-            const e = event as any;
-            const block = await event.getBlock();
-            history.push({
-                type: 'Approved',
-                hash: event.transactionHash,
-                timestamp: block.timestamp,
-                approver: e.args[1],
-                oldRecipient: e.args[2],
-                oldAmount: ethers.formatEther(e.args[3]),
-                newRecipient: e.args[4],
-                newAmount: ethers.formatEther(e.args[5]),
-                blockNumber: event.blockNumber
-            });
+        if (gradingResult.rows.length > 0) {
+            const gradingId = gradingResult.rows[0].id;
+
+            // Fetch status history from database
+            const statusHistoryResult = await getPool().query(
+                `SELECT id, status, tx_hash 
+                 FROM grading_status_history 
+                 WHERE grading_id = $1 
+                 ORDER BY id ASC`,
+                [gradingId]
+            );
+
+            // Add status updates to history
+            for (const row of statusHistoryResult.rows) {
+                // If there's a tx_hash, try to get blockchain details
+                let blockNumber = null;
+                let timestamp = Math.floor(Date.now() / 1000); // Use current time as fallback
+
+                if (row.tx_hash) {
+                    try {
+                        const receipt = await provider.getTransactionReceipt(row.tx_hash);
+                        if (receipt) {
+                            blockNumber = receipt.blockNumber;
+                            const block = await provider.getBlock(receipt.blockNumber);
+                            if (block) {
+                                timestamp = block.timestamp;
+                            }
+                        }
+                    } catch (e) {
+                        console.log(`Could not fetch blockchain details for ${row.tx_hash}`);
+                    }
+                }
+
+                history.push({
+                    type: 'Status Update',
+                    status: row.status,
+                    hash: row.tx_hash,
+                    timestamp: timestamp,
+                    blockNumber: blockNumber
+                });
+            }
         }
 
         // Sort by time

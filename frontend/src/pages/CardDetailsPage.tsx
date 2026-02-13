@@ -25,10 +25,11 @@ interface Grading {
 }
 
 interface HistoryEvent {
-    type: 'Submitted' | 'Approved';
+    type: 'Submitted' | 'Approved' | 'Status Update';
+    status?: string;
     hash: string;
     timestamp: number;
-    blockNumber: number;
+    blockNumber: number | null;
     // other fields omitted for brevity as we just need type/time
 }
 
@@ -224,7 +225,7 @@ export function CardDetailsPage() {
                                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                                             <div>
                                                 <div className="font-bold text-white text-lg">
-                                                    {event.type === 'Submitted' ? 'Submission Recorded' : 'Grading Completed'}
+                                                    {event.status || event.type}
                                                 </div>
                                                 <div className="text-gray-400 text-sm flex items-center gap-2 mt-1">
                                                     <Clock size={14} />
