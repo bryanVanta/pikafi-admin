@@ -138,76 +138,92 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 transition-all"
+            onClick={onClose}
+        >
             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto no-scrollbar"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-gray-900/90 backdrop-blur-xl border border-white/10 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto no-scrollbar shadow-2xl shadow-purple-500/10 relative"
             >
-                <div className="p-6 border-b border-zinc-800 flex justify-between items-center sticky top-0 bg-zinc-900 z-10">
-                    <h2 className="text-xl font-bold text-white">Submit New Card</h2>
-                    <button onClick={onClose} className="text-zinc-400 hover:text-white">
-                        <X size={24} />
+                {/* Header with Glass Effect */}
+                <div className="p-6 border-b border-white/5 flex justify-between items-center sticky top-0 bg-gray-900/80 backdrop-blur-md z-10">
+                    <div>
+                        <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Submit New Card</h2>
+                        <p className="text-xs text-gray-500 mt-1">Enter details or use AI to identify</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                        <X size={20} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-6 space-y-8">
                     {/* Customer Information Section */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-zinc-300 border-b border-zinc-800 pb-2">Customer Information</h3>
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Information</h3>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-1">Full Name</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Full Name</label>
                                 <input
                                     type="text"
                                     required
                                     value={customerName}
                                     onChange={(e) => setCustomerName(e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-medium"
                                     placeholder="e.g. John Doe"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-1">ID Type</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">ID Type</label>
                                 <select
                                     value={customerIdType}
                                     onChange={(e) => setCustomerIdType(e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50 transition-all font-medium appearance-none"
                                 >
                                     <option value="NRIC">NRIC</option>
                                     <option value="Passport">Passport</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-1">ID Number</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">ID Number</label>
                                 <input
                                     type="text"
                                     required
                                     value={customerIdNumber}
                                     onChange={(e) => setCustomerIdNumber(e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-medium font-mono"
                                     placeholder="e.g. S1234567A"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-1">Contact Number</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Contact Number</label>
                                 <input
                                     type="tel"
                                     required
                                     value={customerContact}
                                     onChange={(e) => setCustomerContact(e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-medium font-mono"
                                     placeholder="+65 9123 4567"
                                 />
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-zinc-400 mb-1">Email Address</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Email Address</label>
                                 <input
                                     type="email"
                                     required
                                     value={customerEmail}
                                     onChange={(e) => setCustomerEmail(e.target.value)}
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-medium"
                                     placeholder="john@example.com"
                                 />
                             </div>
@@ -215,57 +231,59 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
                     </div>
 
                     {/* Card Information Section */}
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                            <h3 className="text-lg font-semibold text-zinc-300">Card Details</h3>
+                    <div className="space-y-4 pt-4 border-t border-white/5">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center gap-2">
+                                <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Card Details</h3>
+                            </div>
                             {isIdentifying && (
-                                <div className="flex items-center gap-2 text-blue-400 text-xs animate-pulse">
-                                    <Loader2 className="animate-spin" size={14} />
-                                    AI is identifying card...
+                                <div className="flex items-center gap-2 text-blue-400 text-xs font-bold animate-pulse bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                                    <Loader2 className="animate-spin" size={12} />
+                                    AI IDENTIFYING...
                                 </div>
                             )}
                         </div>
+
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-1">Card Name</label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    required
-                                    value={cardName}
-                                    onChange={(e) => setCardName(e.target.value)}
-                                    className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500 ${isIdentifying ? 'opacity-50' : ''}`}
-                                    placeholder={isIdentifying ? "Identifying..." : "e.g. Charizard Base Set"}
-                                />
-                            </div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Card Name</label>
+                            <input
+                                type="text"
+                                required
+                                value={cardName}
+                                onChange={(e) => setCardName(e.target.value)}
+                                className={`w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-medium ${isIdentifying ? 'opacity-50' : ''}`}
+                                placeholder={isIdentifying ? "Identifying..." : "e.g. Charizard Base Set"}
+                            />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-1">Set</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Set</label>
                                 <input
                                     type="text"
                                     value={cardSet}
                                     onChange={(e) => setCardSet(e.target.value)}
-                                    className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500 ${isIdentifying ? 'opacity-50' : ''}`}
+                                    className={`w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-medium ${isIdentifying ? 'opacity-50' : ''}`}
                                     placeholder={isIdentifying ? "Identifying..." : "e.g. Base Set"}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-1">Year</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Year</label>
                                 <input
                                     type="text"
                                     value={cardYear}
                                     onChange={(e) => setCardYear(e.target.value)}
-                                    className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500 ${isIdentifying ? 'opacity-50' : ''}`}
+                                    className={`w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-medium ${isIdentifying ? 'opacity-50' : ''}`}
                                     placeholder={isIdentifying ? "Identifying..." : "e.g. 1999"}
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-1">Condition</label>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Condition (Declared)</label>
                             <select
                                 value={condition}
                                 onChange={(e) => setCondition(e.target.value)}
-                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
+                                className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 transition-all font-medium appearance-none"
                             >
                                 <option value="Mint">Mint</option>
                                 <option value="Near Mint">Near Mint</option>
@@ -279,23 +297,35 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
                     </div>
 
                     {/* Image Upload */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-4 border-t border-white/5">
+                        <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Card Image</label>
                         <div
                             {...getRootProps()}
-                            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700 hover:border-zinc-600'}`}
+                            className={`group border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-300 relative overflow-hidden ${isDragActive ? 'border-blue-500 bg-blue-500/5' : 'border-white/10 hover:border-white/20 hover:bg-white/5'}`}
                         >
                             <input {...getInputProps()} />
+
+                            {/* Animated Background Gradient on Hover */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
                             {imageFile ? (
-                                <div className="relative">
-                                    <img src={URL.createObjectURL(imageFile)} alt="Upload" className="h-40 mx-auto rounded object-contain" />
-                                    <div className="text-xs text-green-400 mt-2">✓ Image Selected: {imageFile.name}</div>
+                                <div className="relative z-10">
+                                    <div className="w-full h-48 bg-black/40 rounded-lg border border-white/10 flex items-center justify-center p-2 mb-3">
+                                        <img src={URL.createObjectURL(imageFile)} alt="Upload" className="h-full object-contain rounded shadow-lg" />
+                                    </div>
+                                    <div className="text-xs text-green-400 font-bold bg-green-500/10 inline-block px-3 py-1 rounded-full border border-green-500/20">
+                                        ✓ Ready to Submit
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">{imageFile.name}</p>
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center gap-3 text-zinc-400">
-                                    {uploading ? <Loader2 className="animate-spin text-blue-400" size={32} /> : <Upload size={32} />}
+                                <div className="flex flex-col items-center gap-4 py-4 relative z-10">
+                                    <div className="w-16 h-16 rounded-full bg-black/40 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl">
+                                        {uploading ? <Loader2 className="animate-spin text-blue-400" size={32} /> : <Upload size={32} className="text-gray-400 group-hover:text-white transition-colors" />}
+                                    </div>
                                     <div>
-                                        <p className="font-medium">Drag & drop card image here</p>
-                                        <p className="text-sm text-zinc-500 mt-1">or click to browse</p>
+                                        <p className="font-bold text-gray-300 group-hover:text-white transition-colors">Click to upload or drag & drop</p>
+                                        <p className="text-xs text-gray-500 mt-1 max-w-[200px] mx-auto">Supports JPG, PNG (Max 10MB)</p>
                                     </div>
                                 </div>
                             )}
@@ -306,26 +336,28 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
                                 type="button"
                                 onClick={() => handleIdentify(imageUrl)}
                                 disabled={isIdentifying}
-                                className="w-full py-2 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                                className="w-full py-2.5 bg-black/40 border border-white/10 hover:bg-purple-500/10 hover:border-purple-500/30 rounded-lg text-xs font-bold text-gray-300 hover:text-purple-300 flex items-center justify-center gap-2 transition-all disabled:opacity-50 uppercase tracking-wide group"
                             >
                                 {isIdentifying ? (
-                                    <Loader2 size={16} className="animate-spin text-blue-400" />
+                                    <Loader2 size={14} className="animate-spin text-purple-400" />
                                 ) : (
-                                    <span className="text-blue-400"></span>
+                                    <span className="w-2 h-2 rounded-full bg-purple-500 mb-0.5 group-hover:animate-pulse"></span>
                                 )}
-                                {isIdentifying ? 'Identifying...' : 'Identify Card with AI'}
+                                {isIdentifying ? 'Analyzing Card...' : 'Auto-Identify Card with AI'}
                             </button>
                         )}
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={uploading || !imageFile}
-                        className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 mt-6 text-white"
-                    >
-                        {uploading ? <Loader2 className="animate-spin" size={20} /> : null}
-                        {uploading ? 'Processing...' : 'Submit for Grading'}
-                    </button>
+                    <div className="pt-4 mt-8 border-t border-white/5">
+                        <button
+                            type="submit"
+                            disabled={uploading || !imageFile}
+                            className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold shadow-lg shadow-purple-900/20 hover:shadow-purple-900/40 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex justify-center items-center gap-3 text-white transition-all duration-300 text-lg"
+                        >
+                            {uploading ? <Loader2 className="animate-spin" size={24} /> : null}
+                            {uploading ? 'Processing Submission...' : 'Submit Card for Grading'}
+                        </button>
+                    </div>
                 </form>
             </motion.div>
         </div>

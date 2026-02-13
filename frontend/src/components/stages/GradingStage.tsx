@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, Calculator } from 'lucide-react';
+import { Calculator, Sparkles } from 'lucide-react';
 import type { StageProps } from '../../types/grading';
 
 export function GradingStage({ grading, onUpdateStatus, isUpdating }: StageProps) {
@@ -43,99 +43,110 @@ export function GradingStage({ grading, onUpdateStatus, isUpdating }: StageProps
     const isValid = grade && corners && edges && surface && centering;
 
     return (
-        <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700/50">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-bold">4</span>
-                Grading Assignment
+        <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2rem] p-8 border border-white/5 shadow-xl relative overflow-hidden">
+            {/* Background Gradient */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+
+            <h2 className="text-xl font-bold mb-8 flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                    <span className="text-blue-400 text-sm font-black">04</span>
+                </div>
+                <div className="flex-1">
+                    <span className="text-white block">Grading Assignment</span>
+                    <span className="text-gray-500 text-xs font-normal mt-0.5 block">{grading.card_name}</span>
+                </div>
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                 {/* Sub-grades */}
-                <div className="space-y-4">
-                    <h3 className="font-medium text-gray-300 border-b border-gray-700 pb-2">Sub-Grades (1-10)</h3>
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                        <h3 className="font-bold text-gray-300">Sub-Grades</h3>
+                        <span className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">1 - 10 Scale</span>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Corners</label>
-                            <input
-                                type="number" step="0.5" min="1" max="10"
-                                value={corners}
-                                onChange={(e) => setCorners(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Edges</label>
-                            <input
-                                type="number" step="0.5" min="1" max="10"
-                                value={edges}
-                                onChange={(e) => setEdges(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Surface</label>
-                            <input
-                                type="number" step="0.5" min="1" max="10"
-                                value={surface}
-                                onChange={(e) => setSurface(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1">Centering</label>
-                            <input
-                                type="number" step="0.5" min="1" max="10"
-                                value={centering}
-                                onChange={(e) => setCentering(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
+                        {[
+                            { label: 'Corners', value: corners, setter: setCorners },
+                            { label: 'Edges', value: edges, setter: setEdges },
+                            { label: 'Surface', value: surface, setter: setSurface },
+                            { label: 'Centering', value: centering, setter: setCentering }
+                        ].map((item) => (
+                            <div key={item.label} className="bg-black/20 rounded-xl p-4 border border-white/5 transition-colors hover:border-blue-500/30 group">
+                                <label className="block text-xs font-bold text-gray-500 mb-2 group-hover:text-blue-400 transition-colors uppercase tracking-wider">{item.label}</label>
+                                <input
+                                    type="number" step="0.5" min="1" max="10"
+                                    value={item.value}
+                                    onChange={(e) => item.setter(e.target.value)}
+                                    className="w-full bg-transparent border-b-2 border-gray-700 text-white font-bold text-xl py-1 focus:outline-none focus:border-blue-500 transition-colors placeholder-gray-800"
+                                    placeholder="-"
+                                />
+                            </div>
+                        ))}
                     </div>
 
                     <button
                         onClick={handleAutoCalc}
-                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                        className="w-full py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/20 flex items-center justify-center gap-2 text-sm font-bold transition-all hover:scale-[1.02]"
                     >
-                        <Calculator size={14} />
+                        <Calculator size={16} />
                         Auto-calculate final grade
                     </button>
                 </div>
 
                 {/* Final Grade */}
-                <div className="flex flex-col justify-center items-center bg-gray-900/50 rounded-xl p-6 border border-gray-700">
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Final Grade</label>
-                    <input
-                        type="number" step="0.5" min="1" max="10"
-                        value={grade}
-                        onChange={(e) => setGrade(e.target.value)}
-                        className="w-32 text-center text-4xl font-bold bg-transparent border-b-2 border-blue-500 text-white focus:outline-none mb-2"
-                        placeholder="--"
-                    />
-                    <div className="flex gap-2 mt-4">
-                        {[10, 9.5, 9, 8.5, 8].map(g => (
-                            <button
-                                key={g}
-                                onClick={() => setGrade(g.toString())}
-                                className={`w-8 h-8 rounded-full text-xs font-medium transition-colors ${grade === g.toString() ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                                    }`}
-                            >
-                                {g}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
+                <div className="flex flex-col">
+                    <div className="flex-1 bg-gradient-to-br from-gray-900 to-black rounded-2xl p-8 border border-white/10 flex flex-col items-center justify-center relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-50" />
 
-            <div className="flex justify-end mt-8 pt-6 border-t border-gray-700">
-                <button
-                    onClick={handleSubmit}
-                    disabled={isUpdating || !isValid}
-                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                    <Award size={20} />
-                    {isUpdating ? 'Saving...' : 'Finalize Grades'}
-                </button>
+                        <label className="block text-sm font-bold text-gray-400 mb-6 uppercase tracking-widest z-10">Final Grade</label>
+
+                        <div className="relative z-10 mb-8">
+                            <input
+                                type="number" step="0.5" min="1" max="10"
+                                value={grade}
+                                onChange={(e) => setGrade(e.target.value)}
+                                className="w-40 text-center text-7xl font-black bg-transparent text-white focus:outline-none placeholder-gray-800 tracking-tighter"
+                                placeholder="-"
+                            />
+                            <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
+                        </div>
+
+                        <div className="flex flex-wrap justify-center gap-2 z-10">
+                            {[10, 9.5, 9, 8.5, 8].map(g => (
+                                <button
+                                    key={g}
+                                    onClick={() => setGrade(g.toString())}
+                                    className={`w-10 h-10 rounded-lg text-sm font-bold transition-all border ${grade === g.toString()
+                                        ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] scale-110'
+                                        : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                                        }`}
+                                >
+                                    {g}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isUpdating || !isValid}
+                        className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-bold text-white transition-all hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(79,70,229,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none relative overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-white/10 translate-y-full hover:translate-y-0 transition-transform duration-300" />
+                        {isUpdating ? (
+                            <>
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Finalizing...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles size={20} fill="currentColor" className="text-yellow-300" />
+                                <span>Finalize & Assign Grade</span>
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
         </div>
     );

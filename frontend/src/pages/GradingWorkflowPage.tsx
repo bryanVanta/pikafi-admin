@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Clock, ExternalLink, Shield, User, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../api';
 import { GradingTimeline } from '../components/GradingTimeline';
@@ -115,7 +115,7 @@ export function GradingWorkflowPage() {
                 return <CompletedStage grading={grading} onUpdateStatus={updateStatus} isUpdating={updating} />;
             default:
                 return (
-                    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700/50">
+                    <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2rem] p-8 border border-white/5 text-center">
                         <p className="text-gray-400">Current status: {grading.status}</p>
                         <p className="text-sm text-gray-500 mt-2">No specific workflow action for this status.</p>
                     </div>
@@ -125,20 +125,20 @@ export function GradingWorkflowPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-                <Loader2 className="animate-spin text-blue-500" size={48} />
+            <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
+                <Loader2 className="animate-spin text-purple-500" size={48} />
             </div>
         );
     }
 
     if (!grading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+            <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col items-center justify-center gap-4">
                 <div className="text-center">
-                    <p className="text-gray-400 text-xl">Grading not found</p>
+                    <p className="text-gray-400 text-xl font-bold">Grading not found</p>
                     <button
                         onClick={() => navigate('/admin')}
-                        className="mt-4 text-blue-400 hover:text-blue-300"
+                        className="mt-6 px-6 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-white"
                     >
                         Back to Dashboard
                     </button>
@@ -148,90 +148,132 @@ export function GradingWorkflowPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-[#0a0a0b] text-white p-6 font-sans selection:bg-purple-500/30 relative overflow-hidden">
+            {/* Ambient Background Glow */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/10 rounded-full blur-[128px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[128px]" />
+            </div>
+
+            <div className="relative z-10 max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-6 flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/admin')}
-                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-                    >
-                        <ArrowLeft size={24} />
-                    </button>
-                    <div>
-                        <h1 className="text-3xl font-bold">Grading Workflow</h1>
-                        <p className="text-gray-400 mt-1">Card #{grading.uid}</p>
+                <div className="mb-8 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/admin')}
+                            className="p-2.5 bg-gray-900/50 border border-white/10 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-all group hover:-translate-x-1"
+                        >
+                            <ArrowLeft size={20} className="group-hover:text-purple-400" />
+                        </button>
+                        <div>
+                            <h1 className="text-3xl font-black bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">Grading Workflow</h1>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-gray-500 text-sm">Managing Grade for</span>
+                                <span className="bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded text-xs font-mono font-bold">#{grading.uid}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Timeline */}
                 <GradingTimeline currentStatus={grading.status} />
 
-                {/* Card Info */}
+                {/* Card Info & Customer Info */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 bg-gray-800 rounded-2xl p-6 border border-gray-700/50"
+                    className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8"
                 >
-                    <h2 className="text-xl font-bold mb-4">Card Information</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Card Image */}
-                        <div>
-                            {grading.image_url && (
-                                <img
-                                    src={grading.image_url}
-                                    alt={grading.card_name}
-                                    className="w-full rounded-lg border border-gray-700 max-h-96 object-contain bg-gray-900"
-                                />
-                            )}
-                        </div>
+                    {/* Visual Card Display - Left Column */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2rem] overflow-hidden shadow-2xl shadow-purple-900/10 border border-white/5 p-6 relative group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                        {/* Card Details */}
-                        <div className="space-y-3">
-                            <div>
-                                <p className="text-gray-400 text-sm">Card Name</p>
-                                <p className="text-white font-bold text-lg">{grading.card_name}</p>
+                            <div className="aspect-[3/4] relative rounded-xl overflow-hidden flex items-center justify-center bg-black/20">
+                                {grading.image_url ? (
+                                    <img
+                                        src={grading.image_url}
+                                        alt={grading.card_name}
+                                        className="w-full h-full object-contain filter drop-shadow-2xl transition-transform duration-500 group-hover:scale-105"
+                                    />
+                                ) : (
+                                    <div className="text-gray-600">No Image</div>
+                                )}
+                                {grading.grade && (
+                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-black font-black text-3xl w-16 h-16 flex items-center justify-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] transform -rotate-6 border-2 border-white/50 z-10">
+                                        {grading.grade}
+                                    </div>
+                                )}
                             </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Set</p>
-                                <p className="text-white">{grading.card_set}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Year</p>
-                                <p className="text-white">{grading.card_year}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Condition</p>
-                                <p className="text-white">{grading.condition}</p>
-                            </div>
-                            {grading.grade && (
-                                <div>
-                                    <p className="text-gray-400 text-sm">Grade</p>
-                                    <p className="text-white font-bold text-2xl">{grading.grade}</p>
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {/* Customer Info */}
-                    <div className="mt-6 pt-6 border-t border-gray-700">
-                        <h3 className="text-lg font-bold mb-3">Customer Information</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                                <p className="text-gray-400 text-sm">Name</p>
-                                <p className="text-white">{grading.customer_name}</p>
+                    {/* Details - Right Column */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Card Details Card */}
+                        <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2rem] p-8 border border-white/5 shadow-xl relative overflow-hidden">
+                            <h2 className="text-xl font-bold mb-6 flex items-center gap-3">
+                                <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20 text-blue-400">
+                                    <Shield size={20} />
+                                </div>
+                                Card Details
+                            </h2>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 text-sm">
+                                <div>
+                                    <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">Card Name</p>
+                                    <p className="text-white font-bold text-lg">{grading.card_name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">Set</p>
+                                    <p className="text-white text-base">{grading.card_set}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">Year</p>
+                                    <p className="text-white text-base">{grading.card_year}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">Condition</p>
+                                    <p className="text-white text-base">{grading.condition}</p>
+                                </div>
+                                {grading.grade && (
+                                    <div>
+                                        <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">Grade</p>
+                                        <p className="text-white font-black text-3xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{grading.grade}</p>
+                                    </div>
+                                )}
                             </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Contact</p>
-                                <p className="text-white">{grading.customer_contact}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Email</p>
-                                <p className="text-white">{grading.customer_email}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">ID Type</p>
-                                <p className="text-white">{grading.customer_id_type}: {grading.customer_id_number}</p>
+                        </div>
+
+                        {/* Customer Info Card */}
+                        <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2rem] p-8 border border-white/5 shadow-xl relative overflow-hidden">
+                            <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                                <div className="p-2 bg-purple-500/10 rounded-lg border border-purple-500/20 text-purple-400">
+                                    <User size={20} />
+                                </div>
+                                Customer Information
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                                <div>
+                                    <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">Full Name</p>
+                                    <p className="text-white">{grading.customer_name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">Contact</p>
+                                    <p className="text-white">{grading.customer_contact}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">Email</p>
+                                    <p className="text-white">{grading.customer_email}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500 text-xs uppercase font-bold mb-1.5">ID Document</p>
+                                    <p className="text-white flex items-center gap-2">
+                                        <span className="text-gray-400">{grading.customer_id_type}</span>
+                                        <span className="bg-white/5 border border-white/10 px-2 py-0.5 rounded text-xs font-mono">{grading.customer_id_number}</span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -242,7 +284,7 @@ export function GradingWorkflowPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="mt-6"
+                    className="mt-8"
                 >
                     {renderStageContent()}
                 </motion.div>
@@ -252,35 +294,56 @@ export function GradingWorkflowPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="mt-6 bg-gray-800 rounded-2xl p-6 border border-gray-700/50"
+                    className="mt-8 bg-gray-900/40 backdrop-blur-xl rounded-[2rem] p-8 border border-white/5 shadow-xl"
                 >
-                    <h2 className="text-xl font-bold mb-4">Audit Log</h2>
-                    <div className="space-y-3">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="p-2 bg-green-500/10 rounded-lg border border-green-500/20 text-green-400">
+                            <ShieldCheck size={20} />
+                        </div>
+                        <h3 className="text-xl font-bold text-white">Audit Log & Blockchain History</h3>
+                    </div>
+
+                    <div className="relative pl-8 space-y-8 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gradient-to-b before:from-purple-500/50 before:to-transparent">
                         {history.length > 0 ? (
                             history.map((event, index) => (
-                                <div key={index} className="bg-gray-900/50 p-4 rounded-lg">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="text-white font-medium">{event.status || event.type}</p>
-                                            <p className="text-gray-400 text-sm mt-1">
-                                                {new Date(event.timestamp * 1000).toLocaleString()}
-                                            </p>
+                                <div key={index} className="relative group">
+                                    <div className={`absolute -left-[2.35rem] w-[18px] h-[18px] rounded-full border-[3px] z-10 box-content transition-all duration-300
+                                                ${index === history.length - 1
+                                            ? 'bg-purple-500 border-gray-900 shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-110'
+                                            : 'bg-gray-800 border-gray-900 group-hover:bg-purple-900/50 group-hover:border-purple-500/50'}`}
+                                    ></div>
+
+                                    <div className="bg-white/5 rounded-xl p-4 border border-white/5 group-hover:border-white/10 transition-colors">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <p className="text-white font-bold text-lg">{event.status || event.type}</p>
+                                                <p className="text-gray-400 text-xs flex items-center gap-2 mt-1">
+                                                    <Clock size={12} />
+                                                    {new Date(event.timestamp * 1000).toLocaleString()}
+                                                </p>
+                                            </div>
+                                            {event.hash && (
+                                                <a
+                                                    href={`https://sepolia.arbiscan.io/tx/${event.hash}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-black/30 hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 text-gray-400 text-xs rounded-lg transition-all border border-white/5"
+                                                >
+                                                    <ExternalLink size={12} />
+                                                    View TX
+                                                </a>
+                                            )}
                                         </div>
                                         {event.hash && (
-                                            <a
-                                                href={`https://sepolia.arbiscan.io/tx/${event.hash}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-400 hover:text-blue-300 text-sm"
-                                            >
-                                                View TX
-                                            </a>
+                                            <div className="font-mono text-xs text-gray-400 break-all select-all bg-black/30 p-2.5 rounded-lg border border-white/10 mt-2 shadow-inner">
+                                                {event.hash}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <p className="text-gray-400">No history available</p>
+                            <p className="text-gray-400 italic">No history available</p>
                         )}
                     </div>
                 </motion.div>

@@ -30,103 +30,100 @@ export function GradingTimeline({ currentStatus }: GradingTimelineProps) {
         return 'pending';
     };
 
-    const getStageColor = (status: string) => {
-        switch (status) {
-            case 'completed':
-                return 'bg-green-500 border-green-500 text-green-500';
-            case 'current':
-                return 'bg-blue-500 border-blue-500 text-blue-500';
-            case 'rejected':
-                return 'bg-red-500 border-red-500 text-red-500';
-            default:
-                return 'bg-gray-700 border-gray-600 text-gray-500';
-        }
-    };
-
-    const getLineColor = (index: number) => {
-        const status = getStageStatus(index);
-        if (status === 'completed') return 'bg-green-500';
-        if (status === 'rejected') return 'bg-red-500';
-        return 'bg-gray-700';
-    };
-
     return (
-        <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700/50">
+        <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2rem] p-8 border border-white/5 shadow-xl relative overflow-hidden">
+            {/* Ambient Background for Timeline */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+
             {/* Rejected Banner */}
             {isRejected && (
-                <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-center gap-3">
-                    <XCircle size={24} className="text-red-500" />
+                <div className="mb-8 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-4 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+                    <div className="p-2 bg-red-500/20 rounded-full">
+                        <XCircle size={24} className="text-red-500" />
+                    </div>
                     <div>
-                        <p className="text-red-500 font-bold">Card Rejected - Counterfeit</p>
-                        <p className="text-gray-400 text-sm">This card has been marked as fake and cannot proceed further.</p>
+                        <p className="text-red-400 font-bold text-lg">Card Rejected - Counterfeit</p>
+                        <p className="text-red-400/70 text-sm">This card has been marked as fake and cannot proceed further.</p>
                     </div>
                 </div>
             )}
 
             {/* Timeline */}
-            <div className="relative">
-                {/* Progress Line */}
-                <div className="absolute top-8 left-0 right-0 h-1 bg-gray-700 hidden md:block" />
+            <div className="relative py-4">
+                {/* Progress Track (Background) */}
+                <div className="absolute top-12 left-0 right-0 h-1 bg-white/5 rounded-full hidden md:block" />
+
+                {/* Active Progress Track (Foreground) */}
+                {!isRejected && currentIndex > 0 && (
+                    <div
+                        className="absolute top-12 left-0 h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hidden md:block transition-all duration-1000 ease-out"
+                        style={{ width: `${((currentIndex + 0.5) / stages.length) * 100}%` }}
+                    />
+                )}
 
                 {/* Stages */}
-                <div className="grid grid-cols-2 md:grid-cols-7 gap-4 md:gap-2 relative">
+                <div className="grid grid-cols-2 md:grid-cols-7 gap-4 md:gap-0 relative">
                     {stages.map((stage, index) => {
                         const status = getStageStatus(index);
                         const Icon = stage.icon;
-                        const colorClass = getStageColor(status);
                         const isActive = status === 'current';
                         const isCompleted = status === 'completed';
                         const isRejectedStage = status === 'rejected';
 
                         return (
-                            <div key={stage.name} className="flex flex-col items-center relative">
-                                {/* Progress Line Segment (Desktop) */}
-                                {index < stages.length - 1 && (
-                                    <div className={`absolute top-8 left-1/2 w-full h-1 hidden md:block ${getLineColor(index)}`} />
-                                )}
-
+                            <div key={stage.name} className="flex flex-col items-center relative z-10">
                                 {/* Stage Icon */}
                                 <motion.div
                                     initial={false}
-                                    animate={isActive ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                                    animate={isActive ? { scale: [1, 1.1, 1], boxShadow: "0 0 20px rgba(168, 85, 247, 0.4)" } : { scale: 1 }}
                                     transition={{ duration: 2, repeat: isActive ? Infinity : 0 }}
-                                    className={`relative z-10 w-16 h-16 rounded-full border-4 flex items-center justify-center ${colorClass} ${isCompleted || isActive || isRejectedStage ? 'bg-opacity-100' : 'bg-opacity-20'
+                                    className={`relative z-10 w-16 h-16 rounded-full border-4 flex items-center justify-center transition-all duration-300
+                                        ${isCompleted ? 'bg-gray-900 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]' :
+                                            isActive ? 'bg-gray-900 border-purple-500 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]' :
+                                                isRejectedStage ? 'bg-gray-900 border-red-500 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]' :
+                                                    'bg-gray-900/80 border-white/5 text-gray-600'
                                         }`}
                                 >
                                     {isCompleted ? (
-                                        <Check size={28} className="text-white" />
-                                    ) : isRejectedStage ? (
-                                        <XCircle size={28} className="text-white" />
+                                        <Check size={24} strokeWidth={3} />
                                     ) : (
-                                        <Icon size={28} className={isActive ? 'text-white' : ''} />
+                                        <Icon size={24} />
                                     )}
                                 </motion.div>
 
                                 {/* Stage Name */}
-                                <div className="mt-3 text-center">
-                                    <p className={`text-xs font-medium ${isActive ? 'text-blue-400' :
-                                            isCompleted ? 'text-green-400' :
-                                                isRejectedStage ? 'text-red-400' :
-                                                    'text-gray-500'
+                                <div className="mt-4 text-center px-1">
+                                    <p className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-purple-400' :
+                                        isCompleted ? 'text-blue-400' :
+                                            isRejectedStage ? 'text-red-400' :
+                                                'text-gray-600'
                                         }`}>
                                         {stage.name}
                                     </p>
                                 </div>
+
+                                {/* Mobile Connector Line */}
+                                {index < stages.length - 1 && (
+                                    <div className="md:hidden absolute bottom-[-1rem] h-4 w-0.5 bg-white/5" />
+                                )}
                             </div>
                         );
                     })}
                 </div>
             </div>
 
-            {/* Current Status Text */}
-            <div className="mt-8 text-center">
-                <p className="text-gray-400 text-sm">Current Status</p>
-                <p className={`text-2xl font-bold mt-1 ${isRejected ? 'text-red-500' :
-                        currentIndex >= 0 ? 'text-blue-400' :
-                            'text-gray-400'
-                    }`}>
-                    {currentStatus}
-                </p>
+            {/* Current Status Text Display */}
+            <div className="mt-10 text-center relative z-10">
+                <div className="inline-block px-6 py-2 rounded-full border border-white/5 bg-white/5 backdrop-blur-md">
+                    <p className="text-gray-400 text-xs uppercase tracking-widest font-bold">Current Status</p>
+                    <p className={`text-xl font-black mt-1 bg-clip-text text-transparent bg-gradient-to-r 
+                        ${isRejected ? 'from-red-400 to-red-600' :
+                            currentIndex >= 0 ? 'from-white via-blue-200 to-purple-200' :
+                                'from-gray-500 to-gray-700'
+                        }`}>
+                        {currentStatus}
+                    </p>
+                </div>
             </div>
         </div>
     );
