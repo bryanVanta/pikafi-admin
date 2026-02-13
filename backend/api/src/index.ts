@@ -86,7 +86,10 @@ async function recordStatusOnBlockchain(gradingId: number, cardDetails: any, sta
             card_name: cardDetails.card_name,
             card_set: cardDetails.card_set,
             card_year: cardDetails.card_year,
-            condition: cardDetails.condition
+            condition: cardDetails.condition,
+            image_url: cardDetails.image_url,
+            // Include customer ID for tracking ownership/origin
+            customer_id: cardDetails.customer_id
         };
 
         // Only include grades if they are present (cleaner view)
@@ -319,7 +322,7 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
         try {
             const blockchainResult = await recordStatusOnBlockchain(
                 insertedId,
-                { card_name, card_set, card_year, condition, image_url },
+                { card_name, card_set, card_year, condition, image_url, customer_id: customerId },
                 'Submitted',
                 null
             );
