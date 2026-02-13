@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Link as LinkIcon, Clock } from 'lucide-react';
+import { ArrowLeft, Loader2, Link as LinkIcon, Clock, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../api';
 
@@ -128,6 +128,14 @@ export function CardDetailsPage() {
                             <div className="text-xl font-bold text-white">129</div>
                         </div>
                     </div>
+
+                    <button
+                        onClick={() => navigate(`/grading/${grading.uid || grading.id}`)}
+                        className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-900/20"
+                    >
+                        <Play size={20} fill="currentColor" />
+                        Open Grading Workflow
+                    </button>
                 </div>
 
                 {/* Middle Column: Details & Customer */}

@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTransactions, api, type Transaction, getGradingDetails, uploadImage } from '../api';
-import { Check, Loader2, Search, Upload, Plus } from 'lucide-react';
+import { Check, Loader2, Search, Upload, Plus, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { SubmitCardModal } from '../components/SubmitCardModal';
-import { AuthenticationModal } from '../components/AuthenticationModal';
+
 
 export function AdminDashboard() {
     const navigate = useNavigate();
@@ -33,10 +33,7 @@ export function AdminDashboard() {
     const [uploading, setUploading] = useState(false);
     const [processing, setProcessing] = useState(false);
 
-    // Authentication modal state
-    const [showAuthModal, setShowAuthModal] = useState(false);
-    const [pendingGrading, setPendingGrading] = useState<any>(null);
-    const [pendingStatus, setPendingStatus] = useState<string>('');
+
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         const file = acceptedFiles[0];
@@ -247,7 +244,7 @@ export function AdminDashboard() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="bg-gray-800 rounded-xl border border-gray-700 overflow-visible hover:border-blue-500/50 transition-all shadow-lg relative pt-6 cursor-pointer group"
-                                onClick={() => navigate(`/grading/${grading.id}`)}
+                                onClick={() => navigate(`/card/${grading.uid || grading.id}`)}
                             >
                                 {/* Circular ID Badge at top center */}
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
@@ -313,57 +310,23 @@ export function AdminDashboard() {
                                         </div>
                                     </div>
 
-                                    {/* Status Update Dropdown */}
-                                    <div>
-                                        <label className="text-xs text-gray-500 block mb-1">Update Status:</label>
-                                        <select
-                                            value={grading.status}
-                                            onClick={(e) => e.stopPropagation()}
-                                            onChange={async (e) => {
-                                                const newStatus = e.target.value;
 
-                                                // Check if we need authentication verification
-                                                if (newStatus === 'Condition Inspection' && grading.status === 'Authentication in Progress') {
-                                                    // Show authentication modal instead of directly updating
-                                                    setPendingGrading(grading);
-                                                    setPendingStatus(newStatus);
-                                                    setShowAuthModal(true);
-                                                    // Reset the dropdown to current status
-                                                    e.target.value = grading.status;
-                                                    return;
-                                                }
-
-                                                try {
-                                                    const res = await api.patch(`/gradings/${grading.id}/status`, { status: newStatus });
-                                                    if (res.data.success) {
-                                                        fetchGradings(); // Refresh the list
-                                                        alert(`Status updated! Blockchain TX: ${res.data.blockchain?.txHash || 'N/A'}`);
-                                                    }
-                                                } catch (error: any) {
-                                                    console.error('Status update failed:', error);
-                                                    if (error.response?.data?.requiresAuthentication) {
-                                                        alert('Authentication result is required for this transition');
-                                                    } else {
-                                                        alert('Failed to update status');
-                                                    }
-                                                }
-                                            }}
-                                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                                        >
-                                            <option value="Submitted">Submitted</option>
-                                            <option value="Authentication in Progress">Authentication in Progress</option>
-                                            <option value="Condition Inspection">Condition Inspection</option>
-                                            <option value="Grading Assigned">Grading Assigned</option>
-                                            <option value="Encapsulation/Slabbing">Encapsulation/Slabbing</option>
-                                            <option value="Ready for Return">Ready for Return</option>
-                                            <option value="Complete">Complete</option>
-                                            <option value="Delivered">Delivered</option>
-                                        </select>
-                                    </div>
 
                                     <div className={`px-3 py-2 rounded-lg border text-sm font-bold text-center uppercase tracking-wide ${getGradingStatusColor(grading.status)}`}>
                                         {grading.status}
                                     </div>
+
+                                    {/* Link to Grading Workflow */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/grading/${grading.uid || grading.id}`);
+                                        }}
+                                        className="w-full mt-3 mb-1 px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold text-white text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
+                                    >
+                                        <Play size={14} fill="currentColor" />
+                                        Grade Card
+                                    </button>
 
                                     {/* Blockchain Transaction Link */}
                                     {grading.tx_hash && (
@@ -576,41 +539,7 @@ export function AdminDashboard() {
 
             </div>
 
-            <AuthenticationModal
-                isOpen={showAuthModal}
-                onClose={() => {
-                    setShowAuthModal(false);
-                    setPendingGrading(null);
-                    setPendingStatus('');
-                }}
-                onConfirm={async (result: 'Authentic' | 'Fake') => {
-                    if (!pendingGrading) return;
 
-                    try {
-                        const res = await api.patch(`/gradings/${pendingGrading.id}/status`, {
-                            status: pendingStatus,
-                            authentication_result: result
-                        });
-
-                        if (res.data.success) {
-                            fetchGradings(); // Refresh the list
-                            if (res.data.terminated) {
-                                alert(`Card marked as counterfeit and rejected. Blockchain TX: ${res.data.blockchain?.txHash || 'N/A'}`);
-                            } else {
-                                alert(`Card authenticated successfully! Blockchain TX: ${res.data.blockchain?.txHash || 'N/A'}`);
-                            }
-                        }
-                    } catch (error: any) {
-                        console.error('Authentication failed:', error);
-                        alert('Failed to update authentication status');
-                    } finally {
-                        setShowAuthModal(false);
-                        setPendingGrading(null);
-                        setPendingStatus('');
-                    }
-                }}
-                cardName={pendingGrading?.card_name || ''}
-            />
 
             <SubmitCardModal
                 isOpen={isModalOpen}
