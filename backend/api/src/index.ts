@@ -101,6 +101,10 @@ async function recordStatusOnBlockchain(gradingId: number, cardDetails: any, sta
             cleanCardDetails.grade_centering = cardDetails.grade_centering;
         }
 
+        if (cardDetails.slabbing_proof_image) {
+            cleanCardDetails.slabbing_proof_image = cardDetails.slabbing_proof_image;
+        }
+
         const cardData = JSON.stringify({
             type: 'grading_status',
             grading_id: gradingId,
@@ -417,12 +421,16 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             grade_edges,
             grade_surface,
             grade_centering,
-            inspection_metadata
+            inspection_metadata,
+            slabbing_proof_image
         } = req.body;
 
         if (!status) {
             return res.status(400).json({ success: false, message: 'Status is required' });
         }
+
+        console.log(`[DEBUG PATCH /api/gradings/${id}/status] req.body:`, req.body);
+        console.log(`[DEBUG PATCH] slabbing_proof_image parsed as:`, slabbing_proof_image);
 
         // Get current grading
         const currentResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [id]);
@@ -472,7 +480,8 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             grade_corners: grade_corners || grading.grade_corners,
             grade_edges: grade_edges || grading.grade_edges,
             grade_surface: grade_surface || grading.grade_surface,
-            grade_centering: grade_centering || grading.grade_centering
+            grade_centering: grade_centering || grading.grade_centering,
+            slabbing_proof_image: slabbing_proof_image || grading.slabbing_proof_image
         };
 
         try {
@@ -505,6 +514,12 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
         if (inspection_metadata) {
             updateQuery += `, inspection_metadata = $${paramIndex}`;
             queryParams.push(inspection_metadata);
+            paramIndex++;
+        }
+
+        if (slabbing_proof_image) {
+            updateQuery += `, slabbing_proof_image = $${paramIndex}`;
+            queryParams.push(slabbing_proof_image);
             paramIndex++;
         }
 
