@@ -76,15 +76,6 @@ export function Navbar({ searchTerm, onSearchChange, onAddClick }: NavbarProps) 
 
                 {/* Right Actions */}
                 <div className="flex items-center justify-end gap-6 w-1/4">
-                    {onAddClick && (
-                        <button
-                            onClick={onAddClick}
-                            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-purple-900/20 transition-all hover:scale-105 active:scale-95"
-                        >
-                            <Plus size={18} />
-                            <span className="hidden lg:inline">Add Card</span>
-                        </button>
-                    )}
 
                     <div className="flex items-center gap-2">
                         <button className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors relative">

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, googleProvider, appleProvider } from '../firebase';
+import { auth, googleProvider } from '../firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -57,19 +58,7 @@ export function AuthPage() {
         }
     };
 
-    const handleAppleSignIn = async () => {
-        setError('');
-        setLoading(true);
-        try {
-            await signInWithPopup(auth, appleProvider);
-            navigate('/submissions');
-        } catch (err: any) {
-            console.error(err);
-            setError(err.message || 'Apple Sign-In failed');
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
 
 
@@ -170,7 +159,7 @@ export function AuthPage() {
                             <span className="relative bg-[#0a0a0b] px-4 text-xs text-gray-500 uppercase tracking-widest font-bold">Or Continue With</span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="flex justify-center">
                             <button
                                 disabled={loading}
                                 type="button"
@@ -196,21 +185,6 @@ export function AuthPage() {
                                     />
                                 </svg>
                                 Google
-                            </button>
-
-                            <button
-                                disabled={loading}
-                                type="button"
-                                onClick={handleAppleSignIn}
-                                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-sm"
-                            >
-                                <svg className="w-5 h-5 mb-0.5" viewBox="0 0 384 512">
-                                    <path
-                                        fill="currentColor"
-                                        d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 21.8-88.5 21.8-11.4 0-51.1-19-84.1-19C52.1 142 0 204.6 0 286.9c0 36.3 8.3 75 25.8 116.7 18.5 44 43.1 82.5 73.1 82.5 26 0 39.6-18 78.6-18 38.6 0 52.3 18 78.6 18 26 0 51.5-35.9 71.3-71 28.5-40.8 38.5-73.8 39.4-75-1.1-.3-74.6-28.8-74.8-111.4zM249.1 81.3c21.2-25.8 32.8-56.1 27.2-81.3-30.8 1.4-64 21.4-83.3 44.4-16.7 19.3-31.5 50.8-27.4 75 32.7 2.6 63.3-15.1 83.5-38.1z"
-                                    />
-                                </svg>
-                                Apple ID
                             </button>
                         </div>
 
