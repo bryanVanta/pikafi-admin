@@ -1,4 +1,5 @@
-import { Search, Plus, Bell, Settings, LogOut } from 'lucide-react';
+import { Search, Bell, Settings, LogOut } from 'lucide-react';
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -6,10 +7,11 @@ import { auth } from '../firebase';
 interface NavbarProps {
     searchTerm?: string;
     onSearchChange?: (term: string) => void;
-    onAddClick?: () => void;
 }
 
-export function Navbar({ searchTerm, onSearchChange, onAddClick }: NavbarProps) {
+
+export function Navbar({ searchTerm, onSearchChange }: NavbarProps) {
+
     const navigate = useNavigate();
     const location = useLocation();
 

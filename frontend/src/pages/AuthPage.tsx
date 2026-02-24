@@ -159,7 +159,7 @@ export function AuthPage() {
                             <span className="relative bg-[#0a0a0b] px-4 text-xs text-gray-500 uppercase tracking-widest font-bold">Or Continue With</span>
                         </div>
 
-                        <div className="flex justify-center">
+                        <div className="w-full">
                             <button
                                 disabled={loading}
                                 type="button"
