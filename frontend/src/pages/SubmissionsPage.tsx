@@ -230,7 +230,6 @@ export function SubmissionsPage() {
             <Navbar
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
-                onAddClick={() => setIsModalOpen(true)}
             />
 
             <div className="relative z-10 p-8 max-w-[1600px] mx-auto pt-10">
