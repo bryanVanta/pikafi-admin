@@ -3,7 +3,7 @@ import { Upload, Loader2, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { uploadImage, api } from '../api';
+// No longer using local api imports, using axios directly as per existing code
 import { createPortal } from 'react-dom';
 
 interface SubmitCardModalProps {

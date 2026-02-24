@@ -1,5 +1,7 @@
-import { Search, Plus, Bell, Settings, User } from 'lucide-react';
+import { Search, Plus, Bell, Settings, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 
 interface NavbarProps {
     searchTerm?: string;
@@ -10,6 +12,15 @@ interface NavbarProps {
 export function Navbar({ searchTerm, onSearchChange, onAddClick }: NavbarProps) {
     const navigate = useNavigate();
     const location = useLocation();
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            navigate('/login');
+        } catch (error) {
+            console.error("Failed to log out", error);
+        }
+    };
 
     return (
         <nav className="sticky top-0 z-50 w-full bg-[#0a0a0b]/80 backdrop-blur-xl border-b border-white/5 shadow-2xl">
@@ -65,6 +76,16 @@ export function Navbar({ searchTerm, onSearchChange, onAddClick }: NavbarProps) 
 
                 {/* Right Actions */}
                 <div className="flex items-center justify-end gap-6 w-1/4">
+                    {onAddClick && (
+                        <button
+                            onClick={onAddClick}
+                            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-purple-900/20 transition-all hover:scale-105 active:scale-95"
+                        >
+                            <Plus size={18} />
+                            <span className="hidden lg:inline">Add Card</span>
+                        </button>
+                    )}
+
                     <div className="flex items-center gap-2">
                         <button className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors relative">
                             <Bell size={20} />
@@ -79,8 +100,12 @@ export function Navbar({ searchTerm, onSearchChange, onAddClick }: NavbarProps) 
 
 
 
-                    <div className="w-10 h-10 rounded-full bg-gray-800 border-2 border-white/10 overflow-hidden flex items-center justify-center cursor-pointer hover:border-purple-500/50 transition-colors">
-                        <User size={20} className="text-gray-400" />
+                    <div
+                        onClick={handleLogout}
+                        title="Sign Out"
+                        className="w-10 h-10 rounded-full bg-gray-800 border-2 border-white/10 overflow-hidden flex items-center justify-center cursor-pointer hover:border-red-500/50 hover:bg-red-500/10 transition-colors group"
+                    >
+                        <LogOut size={16} className="text-gray-400 group-hover:text-red-400 transition-colors ml-0.5" />
                     </div>
                 </div>
             </div>

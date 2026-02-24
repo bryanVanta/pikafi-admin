@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 interface InspectionGridProps {
     side: 'Front' | 'Back';
@@ -9,7 +9,7 @@ interface InspectionGridProps {
 const ROWS = ['A', 'B', 'C'];
 const COLS = ['1', '2', '3'];
 
-export const InspectionGrid: React.FC<InspectionGridProps> = ({ side, values, onChange }) => {
+export const InspectionGrid: React.FC<InspectionGridProps> = ({ values, onChange }) => {
     // Upsized Card Dimensions:
     // Container: 550px x 680px (To fit screen comfortably but much larger)
     // Card: 320px x 448px (Standard Aspect Ratio ~2.5/3.5, Scaled up)

@@ -14,7 +14,7 @@ const calculateEdgeAverage = (values: Record<string, number | null>) => {
     return filled.reduce((a, b) => a + b, 0) / filled.length;
 };
 
-export const EdgeSegments: React.FC<EdgeSegmentsProps> = ({ side, values, onChange }) => {
+export const EdgeSegments: React.FC<EdgeSegmentsProps> = ({ values, onChange }) => {
     // Upsized Dimensions:
     // Container: 550px x 680px
     // Card: 320px x 448px (Centered)
@@ -103,7 +103,7 @@ interface CornerSegmentsProps {
     onChange: (id: string, value: number) => void;
 }
 
-export const CornerSegments: React.FC<CornerSegmentsProps> = ({ side, values, onChange }) => {
+export const CornerSegments: React.FC<CornerSegmentsProps> = ({ values, onChange }) => {
     // Upsized Dimensions
 
     const calculateCornerAverage = (values: Record<string, number | null>) => {

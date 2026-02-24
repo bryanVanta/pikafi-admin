@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Package, SmartphoneNfc, Upload, Image as ImageIcon } from 'lucide-react';
+import { Package, SmartphoneNfc, Upload } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import type { StageProps } from '../../types/grading';

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { InspectionGrid } from '../inspection/InspectionGrid';
 import { EdgeSegments, CornerSegments } from '../inspection/DetailedSegments';
 
@@ -32,7 +33,7 @@ const STEPS = [
     { id: 'summary', title: 'Final Summary', description: 'Review all inspection results.' }
 ];
 
-export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> = ({ grading, onUpdateStatus, isUpdating }) => {
+export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> = ({ onUpdateStatus }) => {
     // Stage State
     const [currentStep, setCurrentStep] = useState(0);
     const [view, setView] = useState<'Front' | 'Back'>('Front');
@@ -64,7 +65,7 @@ export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> =
 
     // Calculation Logic
     useEffect(() => {
-        const calculateAvg = (frontVals: Record<string, number>, backVals: Record<string, number>, countPerSide: number) => {
+        const calculateAvg = (frontVals: Record<string, number>, backVals: Record<string, number>) => {
             const fVals = Object.values(frontVals).filter(v => v !== null && v !== undefined && !isNaN(v));
             const bVals = Object.values(backVals).filter(v => v !== null && v !== undefined && !isNaN(v));
 
@@ -75,10 +76,10 @@ export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> =
             return totalSum / totalEntries;
         };
 
-        const sAvg = calculateAvg(metadata.front.surface, metadata.back.surface, 9);
-        const eAvg = calculateAvg(metadata.front.edges, metadata.back.edges, 12);
-        const cAvg = calculateAvg(metadata.front.corners, metadata.back.corners, 4);
-        const ceAvg = calculateAvg(metadata.front.centering, metadata.back.centering, 4);
+        const sAvg = calculateAvg(metadata.front.surface, metadata.back.surface);
+        const eAvg = calculateAvg(metadata.front.edges, metadata.back.edges);
+        const cAvg = calculateAvg(metadata.front.corners, metadata.back.corners);
+        const ceAvg = calculateAvg(metadata.front.centering, metadata.back.centering);
 
         // Simple weighted average for Total Grade (Mock Logic)
         const totalScore100 = (sAvg + eAvg + cAvg + ceAvg) / 4;
