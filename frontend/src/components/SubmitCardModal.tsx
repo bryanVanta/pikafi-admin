@@ -4,6 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { uploadImage, api } from '../api';
+import { createPortal } from 'react-dom';
 
 interface SubmitCardModalProps {
     isOpen: boolean;
@@ -137,9 +138,9 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 transition-all"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[9999] transition-all"
             onClick={onClose}
         >
             <motion.div
@@ -360,6 +361,7 @@ export function SubmitCardModal({ isOpen, onClose, onSuccess }: SubmitCardModalP
                     </div>
                 </form>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 }
