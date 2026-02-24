@@ -409,7 +409,16 @@ app.get('/api/gradings', async (req: Request, res: Response) => {
 app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { status, authentication_result } = req.body;
+        const {
+            status,
+            authentication_result,
+            grade,
+            grade_corners,
+            grade_edges,
+            grade_surface,
+            grade_centering,
+            inspection_metadata
+        } = req.body;
 
         if (!status) {
             return res.status(400).json({ success: false, message: 'Status is required' });
@@ -455,9 +464,20 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
         // Record status change on blockchain
         let txHash = null;
         let blockchainUid = null;
+
+        // Prepare updated card details for blockchain record
+        const updatedCardDetails = {
+            ...grading,
+            grade: grade || grading.grade,
+            grade_corners: grade_corners || grading.grade_corners,
+            grade_edges: grade_edges || grading.grade_edges,
+            grade_surface: grade_surface || grading.grade_surface,
+            grade_centering: grade_centering || grading.grade_centering
+        };
+
         try {
             // Pass full grading object for card details
-            const blockchainResult = await recordStatusOnBlockchain(parseInt(id as string), grading, finalStatus, grading.status);
+            const blockchainResult = await recordStatusOnBlockchain(parseInt(id as string), updatedCardDetails, finalStatus, grading.status);
             txHash = blockchainResult.txHash;
             blockchainUid = blockchainResult.blockchainUid;
             console.log(`✅ Status update for card ${id} recorded on blockchain: ${txHash}`);
@@ -465,18 +485,33 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             console.error('⚠️ Blockchain recording failed, continuing with database only:', blockchainError);
         }
 
-        // Update status and authentication_result in database
+        // Construct dynamic update query
+        let updateQuery = 'UPDATE gradings SET status = $1, tx_hash = $2';
+        const queryParams: any[] = [finalStatus, txHash];
+        let paramIndex = 3;
+
         if (authentication_result) {
-            await getPool().query(
-                'UPDATE gradings SET status = $1, authentication_result = $2 WHERE id = $3',
-                [finalStatus, authentication_result, id]
-            );
-        } else {
-            await getPool().query(
-                'UPDATE gradings SET status = $1 WHERE id = $2',
-                [finalStatus, id]
-            );
+            updateQuery += `, authentication_result = $${paramIndex}`;
+            queryParams.push(authentication_result);
+            paramIndex++;
         }
+
+        if (grade !== undefined) {
+            updateQuery += `, grade = $${paramIndex}, grade_corners = $${paramIndex + 1}, grade_edges = $${paramIndex + 2}, grade_surface = $${paramIndex + 3}, grade_centering = $${paramIndex + 4}`;
+            queryParams.push(grade, grade_corners, grade_edges, grade_surface, grade_centering);
+            paramIndex += 5;
+        }
+
+        if (inspection_metadata) {
+            updateQuery += `, inspection_metadata = $${paramIndex}`;
+            queryParams.push(inspection_metadata);
+            paramIndex++;
+        }
+
+        updateQuery += ` WHERE id = $${paramIndex}`;
+        queryParams.push(id);
+
+        await getPool().query(updateQuery, queryParams);
 
         // Insert into status history
         await getPool().query(

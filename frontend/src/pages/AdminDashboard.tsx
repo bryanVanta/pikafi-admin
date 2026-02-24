@@ -280,12 +280,7 @@ export function AdminDashboard() {
                                             #{String(grading.uid || grading.id).padStart(4, '0')}
                                         </div>
 
-                                        {/* Grade Badge - Bottom Right (only if graded) */}
-                                        {grading.grade && (
-                                            <div className="absolute bottom-4 right-4 bg-white text-black font-black text-xl w-12 h-12 flex items-center justify-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] transform -rotate-6 border-2 border-white/20 z-10">
-                                                {grading.grade}
-                                            </div>
-                                        )}
+
                                     </div>
 
                                     {/* Content Section */}

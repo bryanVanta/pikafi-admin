@@ -199,11 +199,6 @@ export function GradingWorkflowPage() {
                                 ) : (
                                     <div className="text-gray-600">No Image</div>
                                 )}
-                                {grading.grade && (
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-black font-black text-3xl w-16 h-16 flex items-center justify-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] transform -rotate-6 border-2 border-white/50 z-10">
-                                        {grading.grade}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
