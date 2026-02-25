@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS customers (
     id_number VARCHAR(100) UNIQUE NOT NULL,
     contact VARCHAR(100),
     email VARCHAR(255),
+    address TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -31,6 +32,9 @@ CREATE TABLE IF NOT EXISTS gradings (
     authentication_result VARCHAR(100),
     inspection_metadata JSONB,
     slabbing_proof_image TEXT,
+    return_method VARCHAR(20),
+    tracking_provider VARCHAR(100),
+    tracking_number VARCHAR(100),
     tx_hash VARCHAR(255),
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

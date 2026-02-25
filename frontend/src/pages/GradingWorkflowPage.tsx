@@ -13,6 +13,9 @@ import { SlabbingStage } from '../components/stages/SlabbingStage';
 import { ReadyForReturnStage } from '../components/stages/ReadyForReturnStage';
 import { CompletedStage } from '../components/stages/CompletedStage';
 import { RejectedStage } from '../components/stages/RejectedStage';
+import { ShippedStage } from '../components/stages/ShippedStage';
+import { ReadyForPickupStage } from '../components/stages/ReadyForPickupStage';
+import { DeliveredStage } from '../components/stages/DeliveredStage';
 
 interface HistoryEvent {
     type: 'Submitted' | 'Approved' | 'Status Update';
@@ -110,8 +113,13 @@ export function GradingWorkflowPage() {
                 return <SlabbingStage grading={grading} onUpdateStatus={updateStatus} isUpdating={updating} />;
             case 'Ready for Return':
                 return <ReadyForReturnStage grading={grading} onUpdateStatus={updateStatus} isUpdating={updating} />;
+            case 'Shipped':
+                return <ShippedStage grading={grading} onUpdateStatus={updateStatus} isUpdating={updating} />;
+            case 'Ready for Pickup':
+                return <ReadyForPickupStage grading={grading} onUpdateStatus={updateStatus} isUpdating={updating} />;
+            case 'Delivered':
+                return <DeliveredStage grading={grading} onUpdateStatus={updateStatus} isUpdating={updating} />;
             case 'Completed':
-            case 'Delivered': // Handle 'Delivered' as Completed
                 return <CompletedStage grading={grading} onUpdateStatus={updateStatus} isUpdating={updating} />;
             default:
                 return (
@@ -176,7 +184,7 @@ export function GradingWorkflowPage() {
                 </div>
 
                 {/* Timeline */}
-                <GradingTimeline currentStatus={grading.status} />
+                <GradingTimeline currentStatus={grading.status} returnMethod={grading.return_method} />
 
                 {/* Card Info & Customer Info */}
                 <motion.div

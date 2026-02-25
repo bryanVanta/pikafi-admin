@@ -1,4 +1,4 @@
-import { CheckCircle2, Award, Sparkles } from 'lucide-react';
+import { CheckCircle2, Award, Sparkles, Truck, Store } from 'lucide-react';
 import type { StageProps } from '../../types/grading';
 
 export function CompletedStage({ grading }: StageProps) {
@@ -55,6 +55,54 @@ export function CompletedStage({ grading }: StageProps) {
                             </div>
                         ))}
                     </div>
+
+                    {grading.return_method === 'delivery' && (
+                        <div className="mt-8 text-left border-t border-white/10 pt-6">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Truck size={16} /> Delivery Tracking
+                            </h3>
+                            <div className="bg-white/5 rounded-xl p-5 border border-white/5">
+                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5 relative">
+                                    <div className="absolute bottom-0 left-0 w-1/3 h-px bg-gradient-to-r from-blue-500 to-transparent"></div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-500 uppercase font-bold">Carrier</p>
+                                        <p className="text-white font-bold text-sm">{grading.tracking_provider}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] text-gray-500 uppercase font-bold">Tracking ID</p>
+                                        <p className="text-blue-400 font-mono text-sm tracking-wide">{grading.tracking_number}</p>
+                                    </div>
+                                </div>
+
+                                <div className="relative border-l border-white/10 ml-[5px] pl-6 space-y-6">
+                                    <div className="relative">
+                                        <div className="absolute -left-[29px] top-1 w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+                                        <p className="text-green-400 text-xs font-bold mb-0.5">Shipped</p>
+                                        <p className="text-gray-400 text-[11px]">Package handed over to {grading.tracking_provider}.</p>
+                                    </div>
+                                    <div className="relative opacity-40">
+                                        <div className="absolute -left-[30px] top-0 w-3 h-3 bg-black border-2 border-white/20 rounded-full"></div>
+                                        <p className="text-white text-xs font-bold mb-0.5">In Transit</p>
+                                        <p className="text-gray-500 text-[11px]">Pending updates from carrier hub.</p>
+                                    </div>
+                                    <div className="relative opacity-40">
+                                        <div className="absolute -left-[30px] top-0 w-3 h-3 bg-black border-2 border-white/20 rounded-full"></div>
+                                        <p className="text-white text-xs font-bold mb-0.5">Delivered</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {grading.return_method === 'pickup' && (
+                        <div className="mt-8 text-center border-t border-white/10 pt-6">
+                            <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20 inline-block w-full">
+                                <Store size={28} className="mx-auto text-blue-400 mb-2 opacity-80" />
+                                <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider mb-1">Ready for Pickup</h3>
+                                <p className="text-xs text-blue-200/70">The customer will pick up this card in-store.</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

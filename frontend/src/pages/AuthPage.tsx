@@ -35,7 +35,7 @@ export function AuthPage() {
             } else {
                 await createUserWithEmailAndPassword(auth, email, password);
             }
-            navigate('/submissions');
+            navigate('/');
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'Failed to authenticate');
@@ -49,7 +49,7 @@ export function AuthPage() {
         setLoading(true);
         try {
             await signInWithPopup(auth, googleProvider);
-            navigate('/submissions');
+            navigate('/');
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'Google Sign-In failed');

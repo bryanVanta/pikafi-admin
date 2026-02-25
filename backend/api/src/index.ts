@@ -353,7 +353,7 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
         const updatedResult = await getPool().query(
             `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
                     c.id_number as customer_id_number, c.contact as customer_contact, 
-                    c.email as customer_email
+                    c.email as customer_email, c.address as customer_address
              FROM gradings g
              LEFT JOIN customers c ON g.customer_id = c.id
              WHERE g.id = $1`,
@@ -388,7 +388,7 @@ app.get('/api/gradings', async (req: Request, res: Response) => {
                     ) as latest_tx_hash,
                     c.name as customer_name, c.id_type as customer_id_type, 
                     c.id_number as customer_id_number, c.contact as customer_contact, 
-                    c.email as customer_email
+                    c.email as customer_email, c.address as customer_address
              FROM gradings g
              LEFT JOIN customers c ON g.customer_id = c.id
              ORDER BY g.submitted_at DESC`
@@ -422,7 +422,11 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             grade_surface,
             grade_centering,
             inspection_metadata,
-            slabbing_proof_image
+            slabbing_proof_image,
+            return_method,
+            tracking_provider,
+            tracking_number,
+            customer_address
         } = req.body;
 
         if (!status) {
@@ -481,7 +485,11 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             grade_edges: grade_edges || grading.grade_edges,
             grade_surface: grade_surface || grading.grade_surface,
             grade_centering: grade_centering || grading.grade_centering,
-            slabbing_proof_image: slabbing_proof_image || grading.slabbing_proof_image
+            slabbing_proof_image: slabbing_proof_image || grading.slabbing_proof_image,
+            return_method: return_method || grading.return_method,
+            tracking_provider: tracking_provider || grading.tracking_provider,
+            tracking_number: tracking_number || grading.tracking_number,
+            customer_address: customer_address || grading.customer_address
         };
 
         try {
@@ -523,6 +531,31 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             paramIndex++;
         }
 
+        if (return_method) {
+            updateQuery += `, return_method = $${paramIndex}`;
+            queryParams.push(return_method);
+            paramIndex++;
+        }
+
+        if (tracking_provider) {
+            updateQuery += `, tracking_provider = $${paramIndex}`;
+            queryParams.push(tracking_provider);
+            paramIndex++;
+        }
+
+        if (tracking_number) {
+            updateQuery += `, tracking_number = $${paramIndex}`;
+            queryParams.push(tracking_number);
+            paramIndex++;
+        }
+
+        if (customer_address) {
+            await getPool().query(
+                "UPDATE customers SET address = $1 WHERE id = $2 AND (address IS NULL OR address = '')",
+                [customer_address, grading.customer_id]
+            );
+        }
+
         updateQuery += ` WHERE id = $${paramIndex}`;
         queryParams.push(id);
 
@@ -538,7 +571,7 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
         const updatedResult = await getPool().query(
             `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
                     c.id_number as customer_id_number, c.contact as customer_contact, 
-                    c.email as customer_email
+                    c.email as customer_email, c.address as customer_address
              FROM gradings g
              LEFT JOIN customers c ON g.customer_id = c.id
              WHERE g.id = $1`,
@@ -570,7 +603,7 @@ app.get('/api/transactions/:uid/grading', async (req: Request, res: Response) =>
         const result = await getPool().query(
             `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
                     c.id_number as customer_id_number, c.contact as customer_contact, 
-                    c.email as customer_email
+                    c.email as customer_email, c.address as customer_address
              FROM gradings g
              LEFT JOIN customers c ON g.customer_id = c.id
              WHERE g.uid = $1`,

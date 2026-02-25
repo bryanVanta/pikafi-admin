@@ -20,7 +20,11 @@ export interface Grading {
     customer_id_number: string;
     customer_contact: string;
     customer_email: string;
+    customer_address?: string;
     authentication_result?: string;
+    return_method?: 'pickup' | 'delivery';
+    tracking_provider?: string;
+    tracking_number?: string;
 }
 
 export interface StageProps {
