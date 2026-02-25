@@ -31,7 +31,7 @@ export function AdminDashboard() {
                     const gradings = res.data.gradings;
 
                     const total = gradings.length;
-                    const completed = gradings.filter((g: any) => g.status === 'Complete' || g.status === 'Delivered').length;
+                    const completed = gradings.filter((g: any) => g.status === 'Completed' || g.status === 'Delivered').length;
                     const pending = total - completed;
 
                     // Compute Grade Distribution (Rounded to 10, 9.5, 9, 8, 7...)
