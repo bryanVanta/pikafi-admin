@@ -101,6 +101,10 @@ async function recordStatusOnBlockchain(gradingId: number, cardDetails: any, sta
             cleanCardDetails.grade_centering = cardDetails.grade_centering;
         }
 
+        if (cardDetails.inspection_metadata) {
+            cleanCardDetails.inspection_metadata = cardDetails.inspection_metadata;
+        }
+
         if (cardDetails.slabbing_proof_image) {
             cleanCardDetails.slabbing_proof_image = cardDetails.slabbing_proof_image;
         }
@@ -485,6 +489,7 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
             grade_edges: grade_edges || grading.grade_edges,
             grade_surface: grade_surface || grading.grade_surface,
             grade_centering: grade_centering || grading.grade_centering,
+            inspection_metadata: inspection_metadata || grading.inspection_metadata,
             slabbing_proof_image: slabbing_proof_image || grading.slabbing_proof_image,
             return_method: return_method || grading.return_method,
             tracking_provider: tracking_provider || grading.tracking_provider,

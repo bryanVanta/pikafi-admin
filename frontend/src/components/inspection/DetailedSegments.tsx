@@ -1,10 +1,14 @@
 import React from 'react';
 
+import { MiniImageUploader } from './MiniImageUploader';
+
 // --- Edge Segments ---
 interface EdgeSegmentsProps {
     side: 'Front' | 'Back';
     values: Record<string, number | null>;
+    images: Record<string, string>;
     onChange: (id: string, value: number) => void;
+    onImageChange: (id: string, url: string) => void;
 }
 
 const calculateEdgeAverage = (values: Record<string, number | null>) => {
@@ -14,20 +18,26 @@ const calculateEdgeAverage = (values: Record<string, number | null>) => {
     return filled.reduce((a, b) => a + b, 0) / filled.length;
 };
 
-export const EdgeSegments: React.FC<EdgeSegmentsProps> = ({ values, onChange }) => {
+export const EdgeSegments: React.FC<EdgeSegmentsProps> = ({ values, images, onChange, onImageChange }) => {
     // Upsized Dimensions:
     // Container: 550px x 680px
     // Card: 320px x 448px (Centered)
 
     const renderInput = (id: string, positionClass: string) => (
         <div className={`absolute flex flex-col items-center group z-10 ${positionClass}`}>
-            <div className="bg-gray-800 border border-gray-600 group-hover:border-blue-500 rounded w-16 h-14 shadow-lg flex flex-col items-center justify-center transition-all overflow-hidden relative">
-                <span className="text-[8px] text-gray-400 absolute top-0.5 left-1">{id}</span>
+            <div className="bg-gray-800 border border-gray-600 group-hover:border-blue-500 rounded w-20 h-16 shadow-lg flex flex-col items-center justify-center transition-all overflow-hidden relative">
+                <span className="text-[10px] text-gray-500 font-mono absolute top-1 left-1.5">{id}</span>
+                <div className="absolute top-1 right-1 z-20">
+                    <MiniImageUploader
+                        value={images[id]}
+                        onChange={(url) => onImageChange(id, url)}
+                    />
+                </div>
                 <input
                     type="number"
                     min="0"
                     max="100"
-                    className="w-full h-full bg-transparent text-center text-base font-bold text-white focus:outline-none pt-1.5"
+                    className="w-full h-full bg-transparent text-center text-xl font-bold text-white focus:outline-none pt-4 pb-1"
                     value={values[id] ?? ''}
                     placeholder="-"
                     onChange={(e) => {
@@ -100,10 +110,12 @@ export const EdgeSegments: React.FC<EdgeSegmentsProps> = ({ values, onChange }) 
 interface CornerSegmentsProps {
     side: 'Front' | 'Back';
     values: Record<string, number | null>;
+    images: Record<string, string>;
     onChange: (id: string, value: number) => void;
+    onImageChange: (id: string, url: string) => void;
 }
 
-export const CornerSegments: React.FC<CornerSegmentsProps> = ({ values, onChange }) => {
+export const CornerSegments: React.FC<CornerSegmentsProps> = ({ values, images, onChange, onImageChange }) => {
     // Upsized Dimensions
 
     const calculateCornerAverage = (values: Record<string, number | null>) => {
@@ -114,14 +126,21 @@ export const CornerSegments: React.FC<CornerSegmentsProps> = ({ values, onChange
     };
 
     const renderInput = (id: string, label: string) => (
-        <div className="flex flex-col items-center bg-gray-800 border border-gray-700 hover:border-blue-500/50 transition-colors rounded p-3 w-24 shadow-lg z-10 relative">
-            <span className="text-[10px] text-gray-500 mb-1 absolute -top-5 w-max bg-gray-900 px-2 py-0.5 rounded border border-gray-800">{label}</span>
-            <div className="relative w-full">
+        <div className="flex flex-col items-center relative z-10">
+            <span className="text-[10px] text-gray-500 absolute -top-5 w-max bg-gray-900 px-2 py-0.5 rounded border border-gray-800 z-20">{label}</span>
+            <div className="bg-gray-800 border border-gray-700 hover:border-blue-500/50 transition-colors rounded w-28 h-20 shadow-lg relative overflow-hidden flex flex-col items-center justify-center">
+                <div className="absolute top-1.5 left-2 text-[10px] text-gray-500 font-mono">{id}</div>
+                <div className="absolute top-1.5 right-1.5 z-20">
+                    <MiniImageUploader
+                        value={images[id]}
+                        onChange={(url) => onImageChange(id, url)}
+                    />
+                </div>
                 <input
                     type="number"
                     min="0"
                     max="100"
-                    className="w-full bg-gray-900 rounded px-1 py-1 text-center text-2xl font-bold text-white focus:outline-none border border-gray-600 focus:border-blue-500"
+                    className="w-full h-full bg-transparent text-center text-3xl font-bold text-white focus:outline-none pt-4 pb-1"
                     value={values[id] ?? ''}
                     placeholder="-"
                     onChange={(e) => {
@@ -130,7 +149,6 @@ export const CornerSegments: React.FC<CornerSegmentsProps> = ({ values, onChange
                     }}
                 />
             </div>
-            <div className="text-[9px] text-gray-600 font-mono mt-1">{id}</div>
         </div>
     );
 

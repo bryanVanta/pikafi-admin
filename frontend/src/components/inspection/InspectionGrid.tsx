@@ -1,15 +1,19 @@
 import * as React from 'react';
 
+import { MiniImageUploader } from './MiniImageUploader';
+
 interface InspectionGridProps {
     side: 'Front' | 'Back';
     values: Record<string, number | null>;
+    images: Record<string, string>;
     onChange: (zone: string, value: number) => void;
+    onImageChange: (zone: string, url: string) => void;
 }
 
 const ROWS = ['A', 'B', 'C'];
 const COLS = ['1', '2', '3'];
 
-export const InspectionGrid: React.FC<InspectionGridProps> = ({ values, onChange }) => {
+export const InspectionGrid: React.FC<InspectionGridProps> = ({ values, images, onChange, onImageChange }) => {
     // Upsized Card Dimensions:
     // Container: 550px x 680px (To fit screen comfortably but much larger)
     // Card: 320px x 448px (Standard Aspect Ratio ~2.5/3.5, Scaled up)
@@ -59,6 +63,12 @@ export const InspectionGrid: React.FC<InspectionGridProps> = ({ values, onChange
                                             }}
                                             step="0.5"
                                         />
+                                        <div className="absolute top-1 right-1 hover:z-20">
+                                            <MiniImageUploader
+                                                value={images[zoneId]}
+                                                onChange={(url) => onImageChange(zoneId, url)}
+                                            />
+                                        </div>
                                         <div className="text-[8px] text-gray-600 font-mono mt-[-2px]">
                                             /100
                                         </div>

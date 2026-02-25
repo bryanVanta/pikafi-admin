@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { InspectionGrid } from '../inspection/InspectionGrid';
 import { EdgeSegments, CornerSegments } from '../inspection/DetailedSegments';
+import { MiniImageUploader } from '../inspection/MiniImageUploader';
 
 interface ConditionInspectionStageProps {
     grading: any;
@@ -13,15 +14,23 @@ interface ConditionInspectionStageProps {
 const INITIAL_METADATA = {
     front: {
         surface: {} as Record<string, number>,
+        surface_images: {} as Record<string, string>,
         edges: {} as Record<string, number>,
+        edges_images: {} as Record<string, string>,
         corners: {} as Record<string, number>,
-        centering: {} as Record<string, number>
+        corners_images: {} as Record<string, string>,
+        centering: {} as Record<string, number>,
+        centering_images: {} as Record<string, string>
     },
     back: {
         surface: {} as Record<string, number>,
+        surface_images: {} as Record<string, string>,
         edges: {} as Record<string, number>,
+        edges_images: {} as Record<string, string>,
         corners: {} as Record<string, number>,
-        centering: {} as Record<string, number>
+        corners_images: {} as Record<string, string>,
+        centering: {} as Record<string, number>,
+        centering_images: {} as Record<string, string>
     }
 };
 
@@ -61,6 +70,23 @@ export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> =
                 }
             }
         }));
+    };
+
+    const updateImage = (category: 'surface' | 'edges' | 'corners' | 'centering', id: string, url: string) => {
+        setMetadata(prev => {
+            const side = view.toLowerCase() as 'front' | 'back';
+            const imgCategory = `${category}_images` as 'surface_images' | 'edges_images' | 'corners_images' | 'centering_images';
+            return {
+                ...prev,
+                [side]: {
+                    ...prev[side],
+                    [imgCategory]: {
+                        ...prev[side][imgCategory],
+                        [id]: url
+                    }
+                }
+            };
+        });
     };
 
     // Calculation Logic
@@ -206,7 +232,9 @@ export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> =
                             <InspectionGrid
                                 side={view}
                                 values={metadata[view.toLowerCase() as 'front' | 'back'].surface}
+                                images={metadata[view.toLowerCase() as 'front' | 'back'].surface_images}
                                 onChange={(id, val) => updateValue('surface', id, val)}
+                                onImageChange={(id, url) => updateImage('surface', id, url)}
                             />
                         </div>
                     </div>
@@ -226,7 +254,9 @@ export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> =
                             <EdgeSegments
                                 side={view}
                                 values={metadata[view.toLowerCase() as 'front' | 'back'].edges}
+                                images={metadata[view.toLowerCase() as 'front' | 'back'].edges_images}
                                 onChange={(id, val) => updateValue('edges', id, val)}
+                                onImageChange={(id, url) => updateImage('edges', id, url)}
                             />
                         </div>
                     </div>
@@ -246,7 +276,9 @@ export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> =
                             <CornerSegments
                                 side={view}
                                 values={metadata[view.toLowerCase() as 'front' | 'back'].corners}
+                                images={metadata[view.toLowerCase() as 'front' | 'back'].corners_images}
                                 onChange={(id, val) => updateValue('corners', id, val)}
+                                onImageChange={(id, url) => updateImage('corners', id, url)}
                             />
                         </div>
                     </div>
@@ -276,85 +308,101 @@ export const ConditionInspectionStage: React.FC<ConditionInspectionStageProps> =
                                     {/* Centering Inputs - Positioned around the card */}
                                     {/* Top */}
                                     <div className="absolute top-[60px] left-1/2 -translate-x-1/2">
-                                        <div className="bg-gray-900 rounded-lg p-3 border border-yellow-500/30 min-w-[140px]">
-                                            <div className="text-[10px] text-yellow-400 mb-1 font-medium uppercase text-center">Top</div>
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    className="w-16 bg-transparent text-white font-bold text-lg focus:outline-none text-center"
-                                                    placeholder="-"
-                                                    value={metadata[view.toLowerCase() as 'front' | 'back'].centering['CE1'] ?? ''}
-                                                    onChange={(e) => {
-                                                        const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
-                                                        updateValue('centering', 'CE1', val);
-                                                    }}
+                                        <div className="bg-gray-900 rounded-xl p-3 border border-yellow-500/30 w-32 relative flex flex-col items-center shadow-lg">
+                                            <div className="text-[10px] text-yellow-400 font-medium uppercase absolute top-1.5 left-2">Top</div>
+                                            <div className="absolute top-1 right-1 z-20">
+                                                <MiniImageUploader
+                                                    value={metadata[view.toLowerCase() as 'front' | 'back'].centering_images['CE1']}
+                                                    onChange={(url) => updateImage('centering', 'CE1', url)}
                                                 />
                                             </div>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                className="w-full bg-transparent text-white font-bold text-3xl focus:outline-none text-center mt-3 pb-1"
+                                                placeholder="-"
+                                                value={metadata[view.toLowerCase() as 'front' | 'back'].centering['CE1'] ?? ''}
+                                                onChange={(e) => {
+                                                    const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                                                    updateValue('centering', 'CE1', val);
+                                                }}
+                                            />
                                         </div>
                                     </div>
 
                                     {/* Right */}
                                     <div className="absolute right-[60px] top-1/2 -translate-y-1/2">
-                                        <div className="bg-gray-900 rounded-lg p-3 border border-yellow-500/30 min-w-[140px]">
-                                            <div className="text-[10px] text-yellow-400 mb-1 font-medium uppercase text-center">Right</div>
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    className="w-16 bg-transparent text-white font-bold text-lg focus:outline-none text-center"
-                                                    placeholder="-"
-                                                    value={metadata[view.toLowerCase() as 'front' | 'back'].centering['CE2'] ?? ''}
-                                                    onChange={(e) => {
-                                                        const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
-                                                        updateValue('centering', 'CE2', val);
-                                                    }}
+                                        <div className="bg-gray-900 rounded-xl p-3 border border-yellow-500/30 w-32 relative flex flex-col items-center shadow-lg">
+                                            <div className="text-[10px] text-yellow-400 font-medium uppercase absolute top-1.5 left-2">Right</div>
+                                            <div className="absolute top-1 right-1 z-20">
+                                                <MiniImageUploader
+                                                    value={metadata[view.toLowerCase() as 'front' | 'back'].centering_images['CE2']}
+                                                    onChange={(url) => updateImage('centering', 'CE2', url)}
                                                 />
                                             </div>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                className="w-full bg-transparent text-white font-bold text-3xl focus:outline-none text-center mt-3 pb-1"
+                                                placeholder="-"
+                                                value={metadata[view.toLowerCase() as 'front' | 'back'].centering['CE2'] ?? ''}
+                                                onChange={(e) => {
+                                                    const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                                                    updateValue('centering', 'CE2', val);
+                                                }}
+                                            />
                                         </div>
                                     </div>
 
                                     {/* Bottom */}
                                     <div className="absolute bottom-[60px] left-1/2 -translate-x-1/2">
-                                        <div className="bg-gray-900 rounded-lg p-3 border border-yellow-500/30 min-w-[140px]">
-                                            <div className="text-[10px] text-yellow-400 mb-1 font-medium uppercase text-center">Bottom</div>
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    className="w-16 bg-transparent text-white font-bold text-lg focus:outline-none text-center"
-                                                    placeholder="-"
-                                                    value={metadata[view.toLowerCase() as 'front' | 'back'].centering['CE3'] ?? ''}
-                                                    onChange={(e) => {
-                                                        const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
-                                                        updateValue('centering', 'CE3', val);
-                                                    }}
+                                        <div className="bg-gray-900 rounded-xl p-3 border border-yellow-500/30 w-32 relative flex flex-col items-center shadow-lg">
+                                            <div className="text-[10px] text-yellow-400 font-medium uppercase absolute top-1.5 left-2">Bottom</div>
+                                            <div className="absolute top-1 right-1 z-20">
+                                                <MiniImageUploader
+                                                    value={metadata[view.toLowerCase() as 'front' | 'back'].centering_images['CE3']}
+                                                    onChange={(url) => updateImage('centering', 'CE3', url)}
                                                 />
                                             </div>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                className="w-full bg-transparent text-white font-bold text-3xl focus:outline-none text-center mt-3 pb-1"
+                                                placeholder="-"
+                                                value={metadata[view.toLowerCase() as 'front' | 'back'].centering['CE3'] ?? ''}
+                                                onChange={(e) => {
+                                                    const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                                                    updateValue('centering', 'CE3', val);
+                                                }}
+                                            />
                                         </div>
                                     </div>
 
                                     {/* Left */}
                                     <div className="absolute left-[60px] top-1/2 -translate-y-1/2">
-                                        <div className="bg-gray-900 rounded-lg p-3 border border-yellow-500/30 min-w-[140px]">
-                                            <div className="text-[10px] text-yellow-400 mb-1 font-medium uppercase text-center">Left</div>
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    className="w-16 bg-transparent text-white font-bold text-lg focus:outline-none text-center"
-                                                    placeholder="-"
-                                                    value={metadata[view.toLowerCase() as 'front' | 'back'].centering['CE4'] ?? ''}
-                                                    onChange={(e) => {
-                                                        const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
-                                                        updateValue('centering', 'CE4', val);
-                                                    }}
+                                        <div className="bg-gray-900 rounded-xl p-3 border border-yellow-500/30 w-32 relative flex flex-col items-center shadow-lg">
+                                            <div className="text-[10px] text-yellow-400 font-medium uppercase absolute top-1.5 left-2">Left</div>
+                                            <div className="absolute top-1 right-1 z-20">
+                                                <MiniImageUploader
+                                                    value={metadata[view.toLowerCase() as 'front' | 'back'].centering_images['CE4']}
+                                                    onChange={(url) => updateImage('centering', 'CE4', url)}
                                                 />
                                             </div>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                className="w-full bg-transparent text-white font-bold text-3xl focus:outline-none text-center mt-3 pb-1"
+                                                placeholder="-"
+                                                value={metadata[view.toLowerCase() as 'front' | 'back'].centering['CE4'] ?? ''}
+                                                onChange={(e) => {
+                                                    const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                                                    updateValue('centering', 'CE4', val);
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 </div>
