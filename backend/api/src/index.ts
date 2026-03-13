@@ -24,12 +24,14 @@ import aiRouter from './routes/ai';
 import marketRouter from './routes/market';
 import uploadRouter from './routes/upload';
 import messagesRouter from './routes/messages';
+import trackingRouter from './routes/tracking';
 
 app.use('/api/assets', assetsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/market', marketRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/messages', messagesRouter);
+app.use('/api/tracking', trackingRouter);
 
 // Swagger Configuration
 const swaggerOptions = {

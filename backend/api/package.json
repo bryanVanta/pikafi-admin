@@ -25,6 +25,7 @@
     "multer": "^2.0.2",
     "openai": "^6.19.0",
     "pg": "^8.18.0",
+    "shippo": "^2.18.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
@@ -34,6 +35,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^25.2.0",
     "@types/pg": "^8.16.0",
+    "@types/shippo": "^1.7.8",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "nodemon": "^3.1.11",

@@ -1,4 +1,4 @@
-import { Box, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Box, CheckCircle2, AlertTriangle, AlertCircle, Truck, MapPin } from 'lucide-react';
 import type { StageProps } from '../../types/grading';
 
 export function DeliveredStage({ grading, onUpdateStatus, isUpdating }: StageProps) {
@@ -17,49 +17,82 @@ export function DeliveredStage({ grading, onUpdateStatus, isUpdating }: StagePro
                 </div>
             </h2>
 
-            <div className="grid grid-cols-1 gap-8 relative z-10">
-                <div className="bg-teal-500/5 rounded-2xl p-6 border border-teal-500/10 flex flex-col items-center justify-center text-center space-y-4">
-                    <Box size={48} className="text-teal-500/80 mb-2" />
-                    <h3 className="text-lg font-bold text-teal-400">Package Delivered</h3>
-                    <p className="text-sm text-teal-200/80 max-w-md">
-                        This order has been marked as delivered by the courier. We are currently waiting for the buyer to confirm receipt of the item.
-                    </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                <div className="space-y-6">
+                    <div className="bg-teal-500/5 rounded-2xl p-8 border border-teal-500/10 flex flex-col items-center justify-center text-center space-y-4 h-full">
+                        <div className="p-4 bg-teal-500/10 rounded-full mb-2">
+                            <CheckCircle2 size={48} className="text-teal-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-teal-400">Package Delivered</h3>
+                        <p className="text-sm text-teal-200/80 max-w-sm">
+                            The courier has confirmed delivery. We are waiting for the customer to finalize the transaction.
+                        </p>
 
-                    <div className="flex items-start gap-3 bg-black/40 p-4 rounded-xl border border-white/5 text-left w-full max-w-md mt-4">
-                        <AlertCircle size={18} className="text-blue-400 shrink-0 mt-0.5" />
-                        <div>
-                            <p className="text-sm font-bold text-blue-400 mb-1">Buyer Grace Period</p>
-                            <p className="text-xs text-gray-400 leading-relaxed">
-                                The buyer has 3 days to verify the contents and confirm receipt. If they do not respond within this window, the system or admin can finalize the order.
-                            </p>
+                        <div className="flex items-start gap-3 bg-black/40 p-4 rounded-xl border border-white/5 text-left w-full mt-4">
+                            <AlertCircle size={18} className="text-blue-400 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-bold text-blue-400 mb-1">3-Day Grace Period</p>
+                                <p className="text-xs text-gray-400 leading-relaxed">
+                                    Customer has 72 hours to verify the card contents before the order auto-finalizes or you can force-complete it.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col items-center pt-6 border-t border-white/5">
-                    <p className="text-sm text-gray-400 mb-4 text-center">
-                        Need to force complete this order? (e.g., buyer confirmed via direct message or grace period ended)
-                    </p>
-                    <button
-                        onClick={() => onUpdateStatus('Completed')}
-                        disabled={isUpdating}
-                        className="flex justify-center items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-bold transition-all border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
-                    >
-                        {isUpdating ? (
-                            <>
-                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                <span className="text-sm">Updating...</span>
-                            </>
-                        ) : (
-                            <>
-                                <CheckCircle2 size={18} />
-                                <span className="text-sm">Force Complete Order</span>
-                            </>
-                        )}
-                    </button>
-                    <p className="text-xs text-red-400/80 mt-3 flex items-center gap-1.5">
-                        <AlertTriangle size={12} /> Only do this if you are absolutely sure.
-                    </p>
+                <div className="space-y-6">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Shipment Details</h3>
+                    <div className="bg-black/20 rounded-2xl p-6 border border-white/5 space-y-4">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-gray-800 rounded-lg text-gray-400">
+                                <Truck size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 mb-0.5 uppercase font-bold">Carrier</p>
+                                <p className="text-white font-bold">{grading.tracking_provider}</p>
+                            </div>
+                        </div>
+                        <div className="h-px bg-white/5 w-full" />
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-gray-800 rounded-lg text-gray-400">
+                                <Box size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 mb-0.5 uppercase font-bold">Tracking ID</p>
+                                <p className="text-gray-300 font-mono text-sm">{grading.tracking_number}</p>
+                            </div>
+                        </div>
+                        <div className="h-px bg-white/5 w-full" />
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-gray-800 rounded-lg text-gray-400">
+                                <MapPin size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 mb-0.5 uppercase font-bold">Delivered To</p>
+                                <p className="text-gray-300 text-sm">{grading.customer_address}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex flex-col items-center">
+                        <button
+                            onClick={() => onUpdateStatus('Completed')}
+                            disabled={isUpdating}
+                            className="w-full flex justify-center items-center gap-2 px-6 py-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-bold transition-all border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
+                        >
+                            {isUpdating ? (
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <CheckCircle2 size={20} />
+                                    <span>Force Finalize Order</span>
+                                </>
+                            )}
+                        </button>
+                        <p className="text-[10px] text-red-400/60 mt-3 flex items-center gap-1.5 uppercase font-bold tracking-widest">
+                            <AlertTriangle size={10} /> Use only for manual confirmation
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, Send, ShieldCheck, Loader2, User, Clock } from 'lucide-react';
 
-// Adjust for your base api url - Assuming the `api` imported from '../api' is standard Axios
 import axios from 'axios';
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { API_BASE } from '../config';
 
 interface Message {
     id: number;
