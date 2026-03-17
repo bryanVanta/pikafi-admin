@@ -353,7 +353,7 @@ app.post('/api/gradings', async (req: Request, res: Response) => {
 
         // Step 5: Insert into status history
         await getPool().query(
-            'INSERT INTO grading_status_history (grading_id, status, tx_hash) VALUES ($1, $2, $3)',
+            'INSERT INTO grading_status_history (grading_id, status, tx_hash, timestamp) VALUES ($1, $2, $3, (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000)::BIGINT)',
             [insertedId, 'Submitted', txHash]
         );
 
@@ -572,7 +572,7 @@ app.patch('/api/gradings/:id/status', async (req: Request, res: Response) => {
 
         // Insert into status history
         await getPool().query(
-            'INSERT INTO grading_status_history (grading_id, status, tx_hash) VALUES ($1, $2, $3)',
+            'INSERT INTO grading_status_history (grading_id, status, tx_hash, timestamp) VALUES ($1, $2, $3, (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000)::BIGINT)',
             [id, finalStatus, txHash]
         );
 
