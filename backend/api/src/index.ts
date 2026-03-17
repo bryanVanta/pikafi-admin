@@ -757,6 +757,191 @@ app.get('/api/transactions', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/gradings/pending:
+ *   get:
+ *     summary: Get all pending admin approvals
+ */
+app.get('/api/gradings/pending', async (req: Request, res: Response) => {
+    try {
+        const result = await getPool().query(
+            `SELECT g.*, 
+                    c.name as customer_name, c.id_type as customer_id_type, 
+                    c.id_number as customer_id_number, c.contact as customer_contact, 
+                    c.email as customer_email, c.address as customer_address
+             FROM gradings g
+             LEFT JOIN customers c ON g.customer_id = c.id
+             WHERE g.status = 'Pending Submission'
+             ORDER BY g.submitted_at DESC`
+        );
+
+        res.json({
+            success: true,
+            count: result.rows.length,
+            gradings: result.rows
+        });
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/gradings/:id/approve-submission:
+ *   post:
+ *     summary: Admin approves a pending submission
+ */
+app.post('/api/gradings/:id/approve-submission', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const idNum = parseInt(id as string);
+
+        // Get current grading
+        const currentResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [idNum]);
+        if (currentResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Grading not found' });
+        }
+
+        const currentGrading = currentResult.rows[0];
+        const previousStatus = currentGrading.status;
+
+        // Record status change on blockchain
+        let txHash = null;
+        try {
+            const blockchainResult = await recordStatusOnBlockchain(
+                idNum,
+                {
+                    card_name: currentGrading.card_name,
+                    card_set: currentGrading.card_set,
+                    card_year: currentGrading.card_year,
+                    condition: currentGrading.condition,
+                    image_url: currentGrading.image_url,
+                    customer_id: currentGrading.customer_id
+                },
+                'Submitted',
+                previousStatus
+            );
+            txHash = blockchainResult.txHash;
+            console.log(`✅ Card ${idNum} approval recorded on blockchain: ${txHash}`);
+        } catch (blockchainError) {
+            console.error('⚠️ Blockchain recording failed, continuing with database only:', blockchainError);
+        }
+
+        // Update status to Approved
+        await getPool().query(
+            'UPDATE gradings SET status = $1, tx_hash = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+            ['Submitted', txHash, idNum]
+        );
+
+        // Record status change in history
+        await getPool().query(
+            'INSERT INTO grading_status_history (grading_id, status, tx_hash, timestamp) VALUES ($1, $2, $3, (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000)::BIGINT)',
+            [idNum, 'Submitted', txHash]
+        );
+
+        // Fetch updated record with customer data
+        const updatedResult = await getPool().query(
+            `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
+                    c.id_number as customer_id_number, c.contact as customer_contact, 
+                    c.email as customer_email, c.address as customer_address
+             FROM gradings g
+             LEFT JOIN customers c ON g.customer_id = c.id
+             WHERE g.id = $1`,
+            [idNum]
+        );
+
+        res.json({
+            success: true,
+            grading: updatedResult.rows[0],
+            message: 'Card submission approved and now visible in submissions',
+            blockchain: txHash ? { txHash } : null
+        });
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/gradings/:id/reject-submission:
+ *   post:
+ *     summary: Admin rejects a pending submission
+ */
+app.post('/api/gradings/:id/reject-submission', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const idNum = parseInt(id as string);
+        const { reason } = req.body;
+
+        // Get current grading
+        const currentResult = await getPool().query('SELECT * FROM gradings WHERE id = $1', [idNum]);
+        if (currentResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Grading not found' });
+        }
+
+        const currentGrading = currentResult.rows[0];
+        const previousStatus = currentGrading.status;
+
+        // Record status change on blockchain
+        let txHash = null;
+        try {
+            const blockchainResult = await recordStatusOnBlockchain(
+                idNum,
+                {
+                    card_name: currentGrading.card_name,
+                    card_set: currentGrading.card_set,
+                    card_year: currentGrading.card_year,
+                    condition: currentGrading.condition,
+                    image_url: currentGrading.image_url,
+                    customer_id: currentGrading.customer_id
+                },
+                'Rejected',
+                previousStatus
+            );
+            txHash = blockchainResult.txHash;
+            console.log(`✅ Card ${idNum} rejection recorded on blockchain: ${txHash}`);
+        } catch (blockchainError) {
+            console.error('⚠️ Blockchain recording failed, continuing with database only:', blockchainError);
+        }
+
+        // Update status to Rejected
+        await getPool().query(
+            'UPDATE gradings SET status = $1, tx_hash = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+            ['Rejected', txHash, idNum]
+        );
+
+        // Record status change in history with rejection reason
+        await getPool().query(
+            'INSERT INTO grading_status_history (grading_id, status, tx_hash, timestamp) VALUES ($1, $2, $3, (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000)::BIGINT)',
+            [idNum, 'Rejected', txHash]
+        );
+
+        // Fetch updated record with customer data
+        const updatedResult = await getPool().query(
+            `SELECT g.*, c.name as customer_name, c.id_type as customer_id_type, 
+                    c.id_number as customer_id_number, c.contact as customer_contact, 
+                    c.email as customer_email, c.address as customer_address
+             FROM gradings g
+             LEFT JOIN customers c ON g.customer_id = c.id
+             WHERE g.id = $1`,
+            [idNum]
+        );
+
+        res.json({
+            success: true,
+            grading: updatedResult.rows[0],
+            message: 'Card submission rejected and removed from queue',
+            blockchain: txHash ? { txHash } : null
+        });
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.listen(port, () => {
     console.log(`⚡️ Server is running at http://localhost:${port}`);
     console.log(`📄 Swagger UI available at http://localhost:${port}/api-docs`);

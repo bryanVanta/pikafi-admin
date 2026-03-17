@@ -202,6 +202,12 @@ export function SubmissionsPage() {
     // Filter and Sort Logic
     const filteredGradings = gradings
         .filter(g => {
+            // Only show approved and graded cards (or in further processing stages)
+            // Exclude anything pending approval, submitted, or rejected
+            if (g.status === 'Pending Submission' || g.status === 'Rejected') {
+                return false;
+            }
+
             const matchesSearch = searchTerm === '' ||
                 (g.card_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (g.card_set?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||

@@ -1,10 +1,12 @@
 import { Search, Bell, Settings, LogOut, MessageCircle } from 'lucide-react';
 
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { AdminChat } from './AdminChat';
+import { PendingApprovalsModal } from './PendingApprovalsModal';
+import axios from 'axios';
 
 interface NavbarProps {
     searchTerm?: string;
@@ -14,9 +16,28 @@ interface NavbarProps {
 
 export function Navbar({ searchTerm, onSearchChange }: NavbarProps) {
     const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isPendingOpen, setIsPendingOpen] = useState(false);
+    const [pendingCount, setPendingCount] = useState(0);
 
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        fetchPendingCount();
+        const interval = setInterval(fetchPendingCount, 10000); // Refresh every 10 seconds
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchPendingCount = async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/gradings/pending`);
+            if (res.data.success) {
+                setPendingCount(res.data.count);
+            }
+        } catch (error) {
+            console.error('Failed to fetch pending count:', error);
+        }
+    };
 
     const handleLogout = async () => {
         try {
@@ -91,9 +112,18 @@ export function Navbar({ searchTerm, onSearchChange }: NavbarProps) {
                                 <MessageCircle size={20} />
                                 <span className="absolute top-2 right-2 w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.8)]" />
                             </button>
-                            <button className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors relative">
+                            <button 
+                                className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors relative"
+                                onClick={() => setIsPendingOpen(true)}
+                            >
                                 <Bell size={20} />
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                                {pendingCount > 0 && (
+                                    <>
+                                        <span className="absolute top-1 right-1 w-5 h-5 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-[0_0_15px_rgba(239,68,68,0.8)]">
+                                            {pendingCount > 9 ? '9+' : pendingCount}
+                                        </span>
+                                    </>
+                                )}
                             </button>
                             <button className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors">
                                 <Settings size={20} />
@@ -115,6 +145,11 @@ export function Navbar({ searchTerm, onSearchChange }: NavbarProps) {
                 </div>
             </nav>
             {isChatOpen && <AdminChat onClose={() => setIsChatOpen(false)} />}
+            <PendingApprovalsModal 
+                isOpen={isPendingOpen} 
+                onClose={() => setIsPendingOpen(false)}
+                onApprovalChange={fetchPendingCount}
+            />
         </>
     );
 }
